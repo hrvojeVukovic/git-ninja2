@@ -1,1 +1,1 @@
-Ovaj dokument smo kreirali kako bi ga pushali u repositorij
+Ovaj dokument smo kreirali kako bi ga pushali u repository
