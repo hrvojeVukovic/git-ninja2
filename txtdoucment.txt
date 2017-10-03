@@ -1,1 +1,2 @@
 Git-ninja2 cloned from repositroy on github
+I cloned this repository
