@@ -1,0 +1,3285 @@
+-ALTER DATABASE bazaa MODIFY name=baza2		//mijenjamo ime baze iz "bazaa" u "baza2"
+
+-sp_renameDB 'Sample2', 'Sample1'		// mijenajmo ime baze iz "Sample2" u "Sample1"
+
+-use baza2					//baza u kojoj ce se kreirat tablica
+
+CREATE TABLE Gender(
+ID int NOT NULL PRIMARY KEY,
+Gender nvarchar(30) NOT NULL
+);
+
+-ALTER TABLE Person ADD CONSTRAINT Person_Gender_FK
+FOREIGN KEY (Gender) REFERENCES Gender (ID);	// ubacivanje stranog kljuca nakon sto su kreirane tablice
+------------
+ALTER TABLE ForeignKey_TABLE ADD CONSTRAINT ForeignKeyTable_ForeignKeyColumn_FK
+FOREIGN KEY (ForeignKeyColumn) REFERENCES PrimaryKeyTable (PrimaryKeyColumn)
+
+---------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 4		CONSTRAINT-OGRANICENJA
+
+ALTER TABLE Person			//dodavanje default constraint-  
+ADD CONSTRAINT DefCon_Person_Gender	// tj. postavlja se 3 kao defaultna vrijednost
+DEFAULT 3 FOR GenderID;			
+------
+ALTER TABLE TableName
+ADD CONSTRAINT ConstraintName
+DEFAULT DefaultValue ColumnName
+
+
+-SP_RENAME 'Person.Surname', 'Email', 'Column' //promijena imena kolone u tablici
+---
+SP_RENAME 'TableName.ColumnName', 'NewColumnName', 'COLUMN'
+
+(Ako se prilikom unosa podatka(redka) za kolonu koja ima defaultnu vrijednost ne doda vrijednost ona ce poprimit defaultnu vrijednost za taj redak
+Medjutim ako se navede NULL (i ako ta kolona dopusta null vrijednosti) onda ce za taj redak kolona imat NULL vrijednost)
+
+
+ALTER TABLE TableName				//dodavanje nove kolone i njezinog defaulte vrijednost
+ADD ColumnName DataType NotNull/Null		//u vec postojecu tablicu	
+CONSTRAINT ConstraintName DEFAULT DefaultValue
+
+-TUTORIAL4
+ALTER TABLE TableName		//brisanje constrainta
+DROP CONSTRAINT ConstraintName
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 5
+
+Ako zelimo izbrisat jedan redak tablice koji je primarni kljuc te tablice i koji se kao strani kljuc nalazi u drugoj tablici, program ce nam javiti gresku.
+Medjutim u drugoj tablici se moze nastimati (npt tbl Person), na koloni koja predstavlja strani kljuc, da se prilikom brisanja redka primarnog kljuca (npr tbl Gender) 
+vrijednost tog stupca u tablici Person postavi na 1.defaultnu vrijednost 2.NULL vrijednost 3.da se izbrise citav redak tablice Person koji sadrzi vrijednost redka 
+koji se brise u tablici Gender.
+---
+Odemo na Keys unutar tablice Person, odaberemo strani kljuc, u novo otvorenom prozoru odaberemo "Insert and Update..." i unutar njega "Delete Rule"
+
+
+--------------------------------------------------------------------------------------------------------------------
+-TUTORIAL6 CHECK CONSTRAINT
+
+Ako imamo kolonu "Godine" tipa INT i zelimo ograniciti max i min vrijednost, npr od 0 do 150, onda dodajemo "CHECK CONSTRAINT"
+
+ALTER TABLE Person
+ADD CONSTRAINT CheckCon_Person_Age CHECK (AGE>0 AND AGE<150) 
+------
+ALTER TABLE TableName
+ADD CONSTRAINT ConstraintName CHECK BoleanExpresion
+
+
+--------------------------------------------------------------------------------------------------------------------
+-TUTORIAL7 IDENTITY COLUMN
+Moze se nastimat za stupac npr Id da je autoincrement.
+Ako imamo 4 redka unesena u tablicu i zatim izbrisemo npr prvi redak,
+kod sljedeceg unosa ce Id bit 5, jer se samo nastavlja.
+Ako zelimo popunit prazno mjesto sa Id=1, moramo pisat naredbu 
+
+-SET IDENTITY_INSETRT TableName ON 		//i potom prilikom ubacivanja obavezno navest imena stupaca
+-INSERT INTO Osoba (Id, Ime, Prezime) VALUES (1, 'Aana', 'Anic')
+
+AKO NAKON OVOGA ZELIMO IZVEST NAREDBU npr,
+-INSERT INTO Osoba2 VALUES ('Pero', 'Peric') 	//javit ce nam gresku jer nismo naveli Id, tj i nazive stupaca
+						//tj treba iskljucit IDENTITY_INSERT  naredbom
+-SET IDENTITY_INSETRT TableName OFF
+
+
+-AKO IZBRISEMO SVE IZ TE TABLICE (npr imali smo 5 redova) I KRENEMO PONOVO SA UNOSOM, Id ce nastavit na 6.
+OVO JE MOGUCE RESTARTIRAT NA POCETNU VRIJEDNOST NAREDBOM (DBCC naredba)
+
+
+-DBCC CHECKIDENT (tblPerson, RESEED, 0)
+
+-MOZE SE ODMA PRILIKOM KREIRANJA TABLICE NEKI STUPAC POSTAVIT ZA IDENTITY
+CREATE TABLE person(
+Id int IDENTITY(1,1),
+Ime char(50)
+)
+
+---------------------------------------------------------------------------------------------------------------
+-TUTORIAL8 GET LAST GENERATED IDENTITY COLUMN
+
+Naredbe za dohvacanje zadnje unesene vrijednosti identifikacijskog stupca (IDENTITY COLUMN), npr ako imamo 5 redaka uneseni trebalo bi vratit br 5
+
+SELECT SCOPE_IDENTITY()
+SELECT @@IDENTITY
+SELECT IDENT_CURRENT ('TableName')
+
+TRIGGER -OKIDAC	//ako zelimo da se prilikom neke akcije automtski odradi jos jedna akcija
+
+CREATE TRIGGER TrigerName ON TableName FOR ACTION_NAME
+AS
+BEGIN
+	QUERRY
+END
+
+npr ako imamo dvije tablice Table1 i Table2, i zelimo da se prilikom unosa u vrijednosti u Table1 autmatski unese i nesto u Table2, okidac ce izgledati
+
+CREATE TRIGGER trTable1Insert ON Table1 INSERT
+AS
+BEGIN
+	INSERT INTO Table2 VALUES ("IVAN");
+END
+
+i npr ako napravimo upit
+INSERT INTO Table1 VALUES (2, "Pero", "Peric"); autmatski ce se izvrsit i upit INSERT INTO Table2 VALUES ("IVAN");
+
+npr.ako zelimo da nam se prilikom unosa u neku tablicu odma i izlistaju sve vrijednosti iz te tablice, okidac bi bio
+
+CREATE TRIGGER trOsoba2Insert ON Osoba2 FOR INSERT
+AS
+BEGIN
+	SELECT * FROM Osoba2
+END
+
+
+----------------------------------------------------------------------------------------------------------------------
+-TUTORIAL9 	UNIQUE KEY-jedinstveni kljuc
+
+Slicno kao PRIMARY KEY- ne dopusta ponavljanje vrijednosti
+Jedina razlika je u tome sto primary key ne dopusta NULL vrijednost, dok UNIQUE dospusta NULL samo za jedan redak tablice
+
+ALTER TABLE TableName	//Kreiranje 
+ADD CONSTRAINT ConstraintNAME UNIQUE (ColumnName)
+
+ALTER TABLE TableName
+DROP CONSTRAINT ConstraintName
+
+---------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 10	SELECT naredba
+
+SELECT DISTINCT Grad FROM Osoba;	//izbaci razlicite gradove u tablici Osoba
+
+
+SELECT DISTINCT Ime, Grad FROM Osoba 	// ovo nam moze vratit imena ili gradove koji se ponavljaju, ali nece vratit samo one redke u kojima se ponavljaju i Ime i Grad
+
+SELECT * FROM Osoba WHERE Grad<>'London'	//  !=  i  <> su znakovi za razlicito
+
+SELECT * FROM Osoba WHERE Godine IN (20, 25, 30)	//vraca sve koji imaju godine 20, 25 ili 30
+	
+SELECT * FROM Osoba WHERE Godine BETWEEN 20 ADN 25	//vraca sve koji imaju godine izmedju 20 i 25
+
+SELECT * FROM Osoba WHERE Ime LIKE 'A%'	//sve kojima ime pocinje sa A	
+
+SELECT FROM Osoba WHERE Ime LIKE '%i%'	//koji u imenu imaju slovo i		%--> 0 ili vise karaktera
+
+SELECT * FROM Osoba WHERE Ime NOT LIKE 'A%'	//koji ne pocinju sa A
+
+SELECT * FROM Osoba WHERE Ime LIKE '_a%'	//kojima je na drugom mjestu slovo a    _ -->jedno slovo
+
+SELECT * FROM Osoba WHERE Ime LIKE '[AEI%]'	//kojima ime pocinje sa A ili E ili I
+
+SELECT * FROM Osoba WHERE Ime LIKE '[^AEI%]'	//kojima ime ne pocinje sa A ili E ili I
+
+SELECT * FROM Osoba WHERE (Grad='London' OR Grad='Paris') AND Godine>25;
+
+SELECT * FROM Osoba ORDER BY Ime	//sortira sve po imenu, od A prema Z, da smo stavili  SELECT * FROM Osoba ORDER BY Ime DSC--bilo bi od Z prema A
+
+SELECT * FROM Osoba ORDER BY Ime ASC, Godine DSC //sortira imena, i ako se ponovi isto ime onda prvo ide onaj sa vise godina jer je drugi niz(Godine) opadajuci niz
+
+SELECT TOP 10 * FROM Osoba 	// izlista samo prvih 10
+
+SELECT TOP 1 * FROM Osoba ORDER BY Godine DESC 	// OVO CE NAM NACI NAJSTARIJU ODOSBU
+
+SELECT MAX(Godine) FROM Osoba 	//ovo ce nam samo dat broj godina
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 11   GROUP BY i agregatne funkcije
+
+SELECT SUM(placa) FROM Osoba 	// daje zbroj svih placa
+
+SELECT MIN(placa) FROM Osoba	//daje najmanju placu
+
+SELECT MAX(placa) FROM Osoba	//daje njavecu placu
+
+SELECT AVERAGE(placa) FROM Osoba 	//daje prosijecnu placu
+
+SELECT COUNT(*) FROM Osoba 	//prebrojat ce koliko imamo podataka u tablici-tj vraca broj redaka
+
+SELECT grad, SUM(placa) FROM Osoba GROUP BY grad	//daje gradove i sumu placa po gradovima, jer je grupirano po gradu
+
+SELECT grad, spol, SUM(placa) FROM Osoba GROUP BY grad 	//ovo daje gresku jer se upit izvrsava s desna na lijevo tj, prvo se grupiraju podaci po gradu i onda
+							//im zelimo prikazati grad, spol i sumu placa. Tj trebamo ih grupirat i po spolu
+
+SELECT grad, spol, SUM(placa) FROM Osoba GROUP BY grad, spol	//grupira ih po gradu i spolu, te onda prikazuje grad, spol i sumu placa
+
+SELECT grad, spol, SUM(placa) AS UkupnaPlaca, COUNT(ID) AS [Broj osoba] FROM Osoba GROUP BY grad, spol	//sve isto samo ce nam jos prebrojati broj osoba
+
+									// "AS" se koristi da damo naziv kolone u prikazu, a uglate zagrade nam omogucavaju
+									// da koristimo razdvojeno rijeci
+
+
+SELECT grad, spol, SUM(placa) AS UkupnaPlaca, COUNT(ID) AS [Broj osoba] FROM Osoba WHERE spol='muško' GROUP BY grad, spol	//sve isto, ali ce nam prikazati samo
+																// za muski spol
+
+
+SELECT grad, spol, SUM(placa) AS UkupnaPlaca, COUNT(ID) AS [Broj osoba] FROM Osoba GROUP BY grad, spol HAVING spol='muško'	//isti upit, ali HAVING ide poslje GROUP BY
+
+Razlika u ova dva upita je u tome sto se u prvom uzimaju samo oni podaci koji imaju spol='muško' i onda se grupiraju po gradu i spolu, a u drugom upitu
+podaci se prvo grupiraju po gradu i spolu i onda se prikazuju samo oni koji imaju spol='muško'
+
+Razlika izmedju WHERE i HAVING
+-WHERE  se moze koristiti sa upitima SELECT, INSERT, UPDATE dok HAVING moze samo sa SELECT
+-WHERE razvrsatva podatke prije grupiranja, dok HAVING to cini nakon grupiranja podataka
+-WHERE  se ne moze koristiti sa agregatnim funkcijama dok HAVING moze
+
+SELECT grad, spol, SUM(placa) AS UkupnaPlaca, COUNT(ID) AS [Broj osoba] FROM Osoba WHERE SUM(placa)>1000 GROUP BY grad, spol 	//greska, jer WHERE  ne moze ic sa agregatnim funkcijama
+
+SELECT grad, spol, SUM(placa) AS UkupnaPlaca, COUNT(ID) AS [Broj osoba] FROM Osoba GROUP BY grad, spol 	HAVING SUM(placa)>1000	//nije greska
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 12   JOINS
+
+
+ako imamo tablicu Person
+ID	Name	Email	GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+5	Petra	p@gmail.com	2	2100	NULL
+6	Pasko	pa@gmail.com	2	1900	NULL
+7	Igor	i@gmail.com	1	1890	NULL
+
+i tablicu tblDepratment
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai               
+
+ 			// KOD "JOIN"  NE SMIJEMO IMATI DVA ISTA NAZIVA STUPACA BEZ OBZIRA STO SE NALAZE U RAZLICITIM
+                        // TABLICAMA, JAVIT CE GRESKU DA JE TAJ STUPAC DVOSMISLEN
+			// npr ne mozemo stavit SELECT ID, Name, GenderID, Name  (Name se ponavlja) ili se mora staviti naziv tablice.naziv kolone npr         
+                   	// Table1.ID, Table2.ID
+
+
+- Select ID, Name, GenderID, Salary, DepartmentName	//INER JOIN, vratit ce samo one redke kod kojih ispunjeno zajednicko polje preko kojeg se povezuju
+  FROM Person						// tj, u ovom slucaju DepratmentID u tablici Person i ID u tablici tblDepartment
+  INNER JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.id
+
+INER JOIN  ce nam dati
+
+Name	GenderID	Salary	DepartmentName
+Marko	1	1000	IT                            
+Joispa	2	2200	HR                            
+Mateo	1	3000	Developer                     
+Ivanko	1	1500	Developer                     		
+
+
+-Select Name, GenderID, Salary, DepartmentName		// LEFT JOIN, vratit ce zajednicke redke i sve redke iz lijeve tablice, tj prve tablice
+  FROM Person						// tj, tablice cije se ime pise nakon "from"
+  LEFT JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.id
+
+LEFT JOIN  ce nam dati
+
+Name	GenderID	Salary	DepartmentName		
+Marko	1	1000	IT                            
+Joispa	2	2200	HR                            
+Mateo	1	3000	Developer                     
+Ivanko	1	1500	Developer                     
+Petra	2	2100	NULL
+Pasko	2	1900	NULL
+Igor	1	1890	NULL
+
+
+- Select Name, GenderID, Salary, DepartmentName		//RIGHT JOIN, vratit ce nam zajednicke redke i sve redke iz desne tablice, tj druge tablice
+  from Person						//tablice cije se ime pise nakon "JOIN"
+  right join tblDepartment
+  on Person.DepartmentID=tblDepartment.id
+
+RIGHT JOIN  ce nam dati
+
+Name	GenderID	Salary	DepartmentName
+Marko	1	1000	IT                            
+Joispa	2	2200	HR                            
+Mateo	1	3000	Developer                     
+Ivanko	1	1500	Developer                     
+NULL	NULL	NULL	HTML                          
+
+
+- Select Name, GenderID, Salary, DepartmentName		// FULL JOIN, vratit ce zajednicke redke te ostale redke iz desne i lijeve tabele
+  FROM Person
+  FULL JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.id
+
+FULL JOIN ce nam dati
+
+Name	GenderID	Salary	DepartmentName
+Marko	1	1000	IT                            
+Joispa	2	2200	HR                            
+Mateo	1	3000	Developer                     
+Ivanko	1	1500	Developer                     
+Petra	2	2100	NULL
+Pasko	2	1900	NULL
+Igor	1	1890	NULL
+NULL	NULL	NULL	HTML                          
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 13    ADVANCED OR INTELLIGENT JOINS
+
+NO MATCHING ROWS, neodgovarajuci redci
+
+- Select Name, GenderID, Salary, DepartmentName			//ovo ce nam dati samo one redke iz lijeve tablice koji nisu odgovarajuci
+  from Person							// tj samo one gdje je Person.DepartmentID is null
+  LEFT  join tblDepartment					// Umjesto "WHERE Person.DepartmentID is null" moze se stavit 
+  on Person.DepartmentID=tblDepartment.id			// "WHERE tblDepartmentID IS NULL"
+  WHERE Person.DepartmentID is null
+
+LEFT JOIN + WHERE ...., daje sljedece 
+
+Name	GenderID	Salary	DepartmentName
+Petra	2		2100	NULL
+Pasko	2		1900	NULL
+Igor	1		1890	NULL
+
+
+
+- Select Name, GenderID, Salary, DepartmentName			//ovo ce nam dati samo one redke iz desne tablice koji nisu odgovarajuci tj 
+  FROM Person							//tj samo onde gdje je Person.DepartmentID is null
+  RIGHT  join tblDepartment
+  ON Person.DepartmentID=tblDepartment.id
+  WHERE Person.DepartmentID is null
+
+RIGHT JOIN + WHERE..., ce nam dati
+
+Name	GenderID	Salary	DepartmentName
+NULL	NULL		NULL	HTML               
+
+           
+
+- Select Name, GenderID, Salary, DepartmentName			//ovo ce nam dati samo one redke iz desne i samo one redke iz lijeve tablice	
+  from Person							// koji nisu odgovarajuci 
+  FULL JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.id
+  WHERE Person.DepartmentID is null OR tblDepartment.ID is null
+
+FULL ce nam dati
+
+Name	GenderID	Salary	DepartmentName
+Petra	2		2100	NULL
+Pasko	2		1900	NULL
+Igor	1		1890	NULL
+NULL	NULL		NULL	HTML              
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 14    SELF JOINS              //pridruzivanje unutar iste tablice
+
+Ako imamo tablciu
+
+EmployeeID	Name		ManagerID
+1		Mark 		     3
+2		John                 1
+3		Steve                NULL
+4		SMith                3
+5		Paul                 4    
+
+u koj je ManagerID kao strani kljuc za EmployeeID, tj Mark ima Johna za managera, dok Steve nema managera. Ako zelimo ispisat imena zaposlenika i pored njih imena
+njihovih managera onda nam treba upit
+
+- SELECT E.Name as Employee, M.Name as Manager		//moraju se koristiti razlicite instance za tablicu
+ FROM tblEmployee E
+ LEFT JOIN tblEmployee M
+ ON E.ManagerID=M.EmployeeID
+ 
+LEFT SELF JOIN, ovo ce nam dati
+
+Employee			Manager
+Mark                          	Steve                         
+John                          	Mark                          
+Steve                         	NULL
+SMith                         	Steve                         
+Paul                          	SMith                               
+
+
+				OVA DVA UPITA CE DATI ISTE REZULTATE 
+		(zamijenjeni su LEFT JOIN I RIGHT JOIN ali su zamijenjene i lijeva i desna tablica)
+
+-SELECT E.Name as Employee, M.Name as Manager           // SELECT E.Name as Manager, M.Name as Employee
+ FROM tblEmployee E					//FROM tblEmployee E
+ RIGHT JOIN tblEmployee M				// LEFT JOIN tblEmployee M
+ ON E.ManagerID=M.EmployeeID				// ON E.EmployeeID=M.ManagerID
+
+RIGHT SELF JOIN, ce nam dati
+
+rez prvog upita
+Employee	Manager
+John            Mark                          
+NULL		John                          
+Mark            Steve                         
+SMith           Steve                         
+Paul            SMith                         
+NULL		Paul      
+
+rez drugog upita
+Employee	Manager
+Mark            John                          
+John            NULL
+Steve           Mark                          
+Steve           SMith                         
+SMith           Paul                          
+Paul            NULL         
+
+
+
+
+- SELECT E.Name as Employee, M.Name as Manager
+ FROM tblEmployee E
+ INNER JOIN tblEmployee M
+ ON E.ManagerID=M.EmployeeID
+
+INNER SELF JOIN, ce nam dati
+
+Employee	Manager
+Mark             Steve                         
+John             Mark                          
+SMith            Steve                         
+Paul             SMith      
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 15  REPLACE NULL VALUE
+
+Ako zelimo da nam upit ne vraca NULL vrijednost, nego umjesto nje neki drugi tekst.
+
+-SELECT E.Name as Employee, ISNULL(M.Name, 'No manager') as Manager	//ISNULL- ima dva parametra. Prvi je izraz koji zelimo tj kolona koju zelimo prikazati
+ FROM tblEmployee E							//a drugi je tekst kojeg zelimo prikazati ako prvi parametar vrati NULL vrijednost
+ LEFT JOIN tblEmployee M
+ ON M.ManagerID=E.EmployeeID         
+
+Employee	Manager
+Mark             John                          
+John            No manager                    // gdje god pise "No manager" tu je zapravo NULL vrijednost
+Steve            Mark                          
+Steve            SMith                         
+SMith            Paul                          
+Paul            No manager                                     
+
+Isto je i sa naredbom COALESCE 
+
+-SELECT E.Name as Employee, COALESCE(M.Name, 'No manager') as Manager
+ FROM tblEmployee E
+ LEFT JOIN tblEmployee M
+ ON M.ManagerID=E.EmployeeID
+
+
+CASE WHEN izraz THEN '' ELSE '' END
+
+-SELECT E.Name, CASE WHEN M.Name IS NULL THEN 'No manager' ELSE M.Name END AS Manager 
+FROM tblEmployee E
+LEFT JOIN tblEmployee M
+ON E.ManagerID=M.EmployeeID           
+    
+
+
+--------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 16 		COALESCE
+
+COALESCE vraca prvu vrijednost koja nije NULL
+
+Ako imamo tablicu "FirstMidleLastName",
+
+ID	FirstName	MidleName	LastName
+1	Marko           NULL		Maric                         
+2	NULL		Maria           Martic                        
+3	Ivan            Jakov           NULL
+4	Ana             Maria           Anic                          
+5	Pero            Peric           NULL
+
+upitom 
+
+-SELECT ID, COALESCE(FirstName, MidleName, LastName) AS Name 	//od ove tri kolone vratit ce prvu vrijednost koja nije NULL
+FROM FirstMidleLastName						//tj ako FirstName nije NULL vratit ce njega i nece provjeravati dalje
+								//ako je FirstName NULL, onda ce provjerit 
+dobijemo
+
+ID	Name
+1	Marko                         
+2	Maria                         
+3	Ivan                          
+4	Ana                           
+5	Pero           
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 17    UNION i  UNION ALL
+
+Spaja upite od dviju razlicitih tablica
+
+-SELECT * FROM tblUKCustomers		// spaja ova dva upita u jedan upit i daje rezultate iz obe tablice
+UNION ALL
+SELECT * FROM tblUSACustomers 
+
+
+
+-SELECT * FROM tblUKCustomers		// razlika izmedju UNION ALL i UNION je u tome sto UNION nece vratit redke koji se ponavljaju
+UNION 					//npr ako u dvije razlicite tablice imamo redke koji su isti onda ce ispisat samo jedan od njih
+SELECT * FROM tblUKCustomers 		// i sortira ih
+
+UNION ALL je brza naredba jer ona uzima redka iz prve tablice i spaja ih sa redcima iz druge tablice.
+UNION je sporija, jer ona prvo sortira podatke i onda izbaci duplikate.
+Kada se koristi naredba UNION ili UNION ALL broj kolona tablica mora biti jednak i tipovi podataka mora bit isti.
+
+Ne moze se stavit 
+
+-SELECT ID, Name from tblUKCustomers		//GRESKA-razlicit broj stupaca
+UNION ALL
+SELECT ID, Name, Email tblUSACustomers
+
+-SELECT ID, Name FROM tblUKCustomers		//GRESKA-razliciti tipovi podataka
+UNION ALL
+SELECT Name, ID FROM tblUSACustomers
+
+
+SELECT ID, Email, Name from tblUKCustomers	//NIJE GRESKA jer su "Email" i "Name" istog tipa podataka
+UNION ALL
+SELECT ID, Name, Email tblUSACustomers
+
+
+Ako zelimo koristiti naredbu OREDER BY, ona mora ici zadnja tj, nakon zadnje naredbe SELECT
+
+SELECT ID, Name from tblUKCustomers		
+UNION ALL
+SELECT ID, Name, Email tblUSACustomers
+ORDER BY Name 
+
+RAZLIKA IZMEDJU UNION I JOIN
+
+JOIN nredba se koristi kod relacijski tablica, tj kad su tablice povezane preko FOREIGN KEY. JOIN SPAJA STUPCE jer uzima strani
+kljuc iz jedne tablice i spaja ga sa odredjenim stupcem iz druge tablice.
+UNION spaja dva ili vise SELECT upita u jedan rezulta. UNION SPAJA REDKE 
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 18 	STORED PROCEDURE - POHRANJENI POSTUPAK
+
+-CREATE PROCEDURE spGetPerson			// Kreira kraticu za naredbe, tj nakon sto kreiramo ovaj PROCEDURE onda samo pozivom "spGetPerson"
+AS						// je isto kao da smo napravili upit "SELECT Name, Email, Salary FROM Person"
+BEGIN						// Moze se i umjesto PROCEDURE stavit skraceno PROC
+SELECT Name, Email, Salary FROM Person
+END           
+
+
+-spGetPerson	                                 // je isto sto i "SELECT Name, Email, Salary FROM Person"
+
+---------------------   
+
+
+-CREATE PROCEDURE spGetPersonByNameAndDepartmentID	//Kreiranje PROCEDURE sa parametrima, tj kada pozovemo ovu kraticu morat cemo proslijediti
+@n nvarchar(20),					// jos dva parametra
+@Did int
+AS
+BEGIN
+SELECT Name, Email, Salary FROM Person WHERE Name=@n AND DepartmentID=@Did
+END
+
+spGetPersonByNameAndDepartmentID 'ivanko', 3		// je isto sto i "SELECT Name, Email, Salary FROM Person WHERE Name='ivanko' AND DepartmentID=3"
+							// REDOSLIJED PARAMETARA SE MORA PODUDARATI
+
+
+-sp_helptext spGetPersonByNameAndDepartmentID 		//ako zelimo vidjet tekst PROCEDURE. Ovo ce nam dati..
+
+
+CREATE PROCEDURE spGetPersonByNameAndDepartmentID
+@n nvarchar(20),
+@Did int
+AS
+BEGIN
+SELECT Name, Email, Salary FROM Person WHERE Name=@n AND DepartmentID=@Did
+END
+
+
+--------------------
+ako zelimo izmijeniti PROCEDURE onda umjesto CREATE stavimo ALTER
+
+-ALTER  PROCEDURE spGetPersonByNameAndDepartmentID		// dodali smo jos da se sortiraju prema imenu
+@n nvarchar(20),					
+@Did int
+AS
+BEGIN
+SELECT Name, Email, Salary FROM Person WHERE Name=@n AND DepartmentID=@Did ORDER BY Name
+END
+
+
+ako je zelimo izbrisat onda samo stavimo 
+
+-DROP PROCEDURE procedureName
+
+--------------
+
+Ako zelimo da se tekst PROCEDURE ne vidi i da ga se ne moze naci tj da ga zakljucamo koristi se naredba WITH ENCRYPTION
+Npr ako zelimo zakljucati vec postojecu PROCEDURE upisat cemo upit 
+
+
+-ALTER  PROCEDURE spGetPersonByNameAndDepartmentID			//Jednom kada se zakljuca tekst PROCEDURE ne moze ga se nikad vise procitat
+@n nvarchar(20),							// moze se samo izbrisat
+@Did int
+WITH ENCRYPTION
+AS
+BEGIN
+SELECT Name, Email, Salary FROM Person WHERE Name=@n AND DepartmentID=@Did ORDER BY Name
+END
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+-TUTORIAL 19    STORED PROCEDURES WITH OUTPUT PARAMETERS
+
+
+PROCEDURE sa izlaznim parametrima, kljucna rijec je OUTPUT kraj izlaznog parametra
+
+
+-CREATE PROCEDURE spGetEmployeeCountByGender			//kreirana je PROCEDURA sa jednim ulaznim i jednim izlaznim parametrom
+@genderr nvarchar(20),						//Buduci da ima izlazni parametar to znaci da cemo od ovog upita dobit neku vrijednsot natrag	
+@EmployeeCount int OUTPUT					// pa kada se kreira PROCEURA i nakon toga kada ju se poziva, pozeljno je kreirati varijablu
+AS								//u kojoj cemo spremiti vrijednost koju nam ona vrati. Varijabla mora biti istog tipa kao i podatak
+BEGIN 								//koji se vraca
+SELECT @EmployeeCount=COUNT(*) FROM tblEmployee WHERE Gender=@genderr
+END
+
+
+-declare @EmployeeNubmber							//definiramo varijablu
+
+-EXECUTE spGetEmployeeCountByGender 'Male', @EmployeeNubmber OUTPUT		//izvrsavamo proceduru i kao parametri se salju 'Male' (ulazni parametar)
+										// i @EmployeeNubmber kao izlazni, tj to je varijabla u koju ce se spremiti vrijednost
+										// koju vrati ova procedura
+										// EXECUTE se moze a i ne mora pisati dok OUTPUT SE MORA NAVESTI, inace ce vrijednost
+										// varijable biti NULL
+
+-PRINT @EmployeeNubmber								// ispis vrijednosti varijable
+
+
+
+-sp_help procedure_name				// naredba koja nam daje informacije o PROCEDURI. Moze se korstiti i za bilo koji drugi objekt npr..
+
+-sp_help table_name
+
+
+-sp_helptext procedure_name			// daje nam tekst PROCEDURE
+	
+	Npr   sp_helptext spGetPersonByGenderAndID	ce nam dati
+		
+	CREATE PROCEDURE spGetPersonByGenderAndID
+	@g int,
+	@id int
+	AS
+	BEGIN
+	SELECT Name, Email, Salary FROM Person WHERE ID=@id AND GenderID=@g
+	END
+
+-sp_depends					// vratit ce nam informacije o tome za koju je tablicu i koje stupce vezana PROCEDUR
+
+	Npr	sp_depends spGetPersonByGenderAndID	ce nam dati
+
+	   name		   type      updated  selected  column
+	dbo.Person	user table	no	yes	ID
+	dbo.Person	user table	no	yes	Name
+	dbo.Person	user table	no	yes	Email
+	dbo.Person	user table	no	yes	GenderID
+	dbo.Person	user table	no	yes	Salary 
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 20  STORED PROCEDURE  with OUTPUT PARAMETERS OR RETURN VALUES
+
+
+Kada se izvrsava PROCEDURA ona uvijek vraca vrijednost (0-kao uspjesno izvrseno, razlicito od nule(NON ZERO) ako nije uspjelo izvrsavanje).
+
+
+Zelimo napravit upit za ukupan broj radnika preko PROCEDURE sa OUTPUT PARAMETER i  sa RETRURN VALUE i ispisat vrijednost
+
+
+-CREATE  PROCEDURE  spGetTotalCount1			//kreiranje PROCEDURE
+@TotalCount int OUTPUT
+AS
+BEGIN
+	SELECT @TotalCount=COUNT (ID) FROM Person
+END
+
+
+DECLARE @Total int 					// kriranje varijable
+EXECUTE spGetTotalCount1 @Total output			//izvrsavanje procedure
+PRINT @Total						// ispis vrijednosti varijable
+
+--------------
+
+-CREATE  PROCEDURE  spGetTotalCount2			//kreiranje PROCEDURE, ovo je PROCEDURA sa RETURN VALUE, tj vraca vrijednost
+AS							//U ovom slucaju vratit ce ukupan broj zaposlenika
+BEGIN
+	RETURN (SELECT COUNT (ID) FROM Person)
+END
+
+
+DECLARE @Total2 int 					// kriranje varijable
+EXECUTE @Total2=spGetTotalCount2			// ono sto vrati PROCEDURA spremit cemo u varijablu
+PRINT @Total2						// ispis varijable
+
+
+
+Razlika izmedju PROCEDURE  sa OUTPUT PARAMETROM i PROCEDURA sa RETURN VALUE je u tome sto PROCEDURA  sa RETURN VALUE  moze vratit samo podatak tipa int tj samo broj.
+Ako zelimo napravit PROCEDURU koja ce nam na osnovu ID-a vratit ime zaposlenika onda moramo koristit OUTPUT PARAMETRE
+
+
+-CREATE PROCEDURE spGetNameById1			// kreiranje PROCEDURE
+@id int,
+@Name varchar(20) output
+AS
+BEGIN
+	SELECT @Name=Name FROM Person  where ID=id
+END
+
+
+DECLARE @NameById varchar(20)				// deklariranje varijable
+EXECUTE spGetNameById1 1, @NameById OUTPUT		//izvrsavanje PROCEDURE
+PRINT @NameById						// ispsuje varijablu
+
+
+------
+
+-CREATE PROCEDURE spGetNameById3
+@id int
+AS
+BEGIN
+	RETURN (SELECT Name FROM Person  where ID=@id)
+END
+
+
+DECLARE @NameById2 varchar(20)			//deklariranje varijavble
+EXECUTE @NameById2=spGetNameById3 1		//OVDJE NAM JAVI GRESKU "Conversion failed when converting the nvarchar value 'Marko' to data type int."
+PRINT @NameById2				//JER PROCEDURA MOZE VRATITI SAMO VARIJABLU TIPA INT
+
+
+
+
+----------------------------------------------------------------------------------------------------
+-TUTORIAL 21    ADVANTAGES OF STORED PROCEDURES			//prednosti STORED PROCEDURA
+
+
+Ako kreiramo PROCEDURU
+
+-CREATE PROCEDURE spGetNameById
+@id int
+AS
+BEGIN
+	SELECT Name FROM tblPerson WHERE ID=@id
+END
+
+I onda je izvrsimo
+
+-EXECUTE spGetNameById 1			//kada se jednom izvrsi procedura ona stvori plan izvrsavanja i onda joj sljedeci put treba manja vremena
+-EXECUTE spGetNameById 2			
+
+-SELECT Name FROM tblPerson WHERE id=1		// kada se jedan upit jednom izvrsi i on stvori plan izvrsavanja ali cim mu se promijeni jedan parametar
+-SELECT Name FROM tblPerson WHERE id=1		//on kreira novi plan izvrsavanja, cak i ako se samo stavi jedan razmka vise on ce kreirati novi plan
+
+
+STORED PROCEDURA spremljenu na jednom serveru moze koristiti više puta razlicite aplikacije.
+STORED PROCEDURA pruza bolju sigurnost, jer ako zelimo da korisnik ne moze pristupiti svim podacima neke tablice onda mozemo kreirati PROCEDURU
+		koja ce mu omoguciti da vidi samo zeljene podatke te tablice
+STORED PROCEDURA izbjegava SQL Injection napad
+
+
+
+
+------------------------------------------------------------------------------------------------
+-TUTORIAL 22	 STRING FUNCTIONS
+
+
+
+ASCII- vraca ASCII broj znaka
+
+-SELECT ASCII('A')		//vraca 65
+-SELECT ASCII('ABC')		//vraca 65 tj ASCII broj prvog znaka
+
+---------
+CHAR -vraca znak za uneseni ASCII broj
+-SELECT CHAR(65)		//vraca slovo A
+
+Ispis velikih slova engleske abecede
+
+DECLARE @brojac int		//definiranje varijable
+set @brojac=65			//pridruzivanje vrijednosti
+while(@brojac<=90)		//while petlja
+begin
+	print char(@brojac)
+	set @brojac=@brojac+1
+end
+
+------
+LTRIM-brise prazna podrucja s lijeve strane stringa 
+RTRIM-brise prazna podrucja s desne strane stringa
+
+-SELECT LTRIM(FIrstName), LasName FROM tblPerson
+
+-------
+LOWER-sva slova pretvara u mala
+UPPER-sva slova pretvara u velika
+REVERSE-vraca rijec s obrnutim redoslijedom slova
+LEN-vraca duljinu stringa
+
+-SELECT LOWER('ANA')		//vraca 'ana'
+-SELECT REVERSE('IVO')		//vraca 'OVI'
+-SELECT REVERSE(LOVER('PERO'))	//vraca 'ovi'	mogu se koristiti jedna funckija unutar druge
+
+-SELECT Name, LEN(Name) as [broj slova] FROM Person
+
+Name	broj slova
+Marko	   5
+Joispa	   6
+Mateo	   5
+Ivanko	   6
+Petra	   5
+
+
+
+
+----------------------------------------------------------------------------
+-TUTORIAL 23	LEFT, RIGHT, CHARINDEX and SUBSTRING 
+
+
+
+LEFT- vraca odredjeni broj slova stringa s lijeve strane
+RIGHT-vraca odredjeni broj slova stringa s desne strane
+CHARINDEX-vraca index trazenog znaka u stringu
+SUBSTRING-vraca dio stringa
+
+-SELECT LEFT('ABCDE',3)				//vraca ABC
+-SELECT RIGHT('ABCDE',3)			//vraca CDE
+-SELECT CHARINDEX('B','ABCDE')			//vraca 2, jer je B na drugom mjestu
+-SELECT SUBSTRING('ana.anic@gmail.com',4,6)	//vraca .anic@, pocinje od cetvrtog znaka i uzima 6 znakova
+
+-SELECT Name, SUBSTRING(Email, CHARINDEX('@', Email)+1, 11) from Person
+
+Marko	gmail.com
+Joispa	gmail.com
+Mateo	gmail.com
+Ivanko	hotmail.com
+Petra	gmail.com
+Pasko	gmail.com
+Igor	gmail.com
+
+
+
+
+--------------------------------------------------------------------
+-TUTORIAL 24 	REPLICATE, SPACE, PATINDEX, REPLACE, STUFF
+
+
+REPLACE(String koji zelimo ponavljati, koliko puta)-ponavlja dati tekst zadani broj puta
+SPACE (broj razmaka)-ispise odredjeni broj razmaka
+PATINDEX(izraz, expression)-vraca indeks pocetka pojavljivanja izraza u tekstu
+REPLACE(expression, string, zamjeni sa)-mijenja dva stringa u datom izrazu
+STUFF(expression, startni indeks, prekoKoliko, string)-ubacuje zeljeni dio teksta pocevsi od startnog ineksa umjesto odredjenog broj znakova
+
+
+Ako imamo ovakvu tablicu
+
+Name	Email
+Marko	m@gmail.com
+Joispa	j@gmail.com
+Mateo	m@gmail.com
+Ivanko	i@hotmail.com
+Petra	p@gmail.com
+Pasko	pa@gmail.com
+Igor	i@gmail.com
+
+
+-SELECT Name, REPLICATE('*', CHARINDEX('@', Email)-1) + SUBSTRING(Email, CHARINDEX('@', Email), LEN(Email)-CHARINDEX('@',Email)) as Email FROM Person
+ Name	 Email
+Marko	*@gmail.co
+Joispa	*@gmail.co
+Mateo	*@gmail.co
+Ivanko	*@hotmail.co
+Petra	*@gmail.co
+Pasko	**@gmail.co
+Igor	*@gmail.co
+
+-------------
+
+-SELECT FirstName + SPACE(5) + LastName AS FullName FROM Person
+
+--------------
+
+-SELECT Email, PATINDEX('%@gmail.com', Email) as [Indeks pojavljivanja] FROM Person
+
+   Email	Indeks pojavljivanja
+m@gmail.com	2
+j@gmail.com	2
+m@gmail.com	2
+i@hotmail.com	0
+p@gmail.com	2
+pa@gmail.com	3
+i@gmail.com	2
+
+------------
+
+-SELECT Email, REPLACE (Email, '.com', '.net') as Zamijena FROM Person		//Ako ne pronadje zadani string u izrazu, onda ne radi nista
+
+Email		  Zamijena
+m@gmail.com	m@gmail.net
+j@gmail.com	j@gmail.net
+m@gmail.com	m@gmail.net
+i@hotmail.com	i@hotmail.net
+p@gmail.com	p@gmail.net
+pa@gmail.com	pa@gmail.net
+i@gmail.com	i@gmail.net
+
+-----------
+
+-SELECT Email, STUFF (Email, 2,1, '****') as StuffedEmail from Person		//pocevsi od drugogo znaka, umjesto jednog znaka stavi '****'
+	
+  Email		   StuffedEmail				
+m@gmail.com	m****gmail.com
+j@gmail.com	j****gmail.com
+m@gmail.com	m****gmail.com
+i@hotmail.com	i****hotmail.com
+p@gmail.com	p****gmail.com
+pa@gmail.com	p****@gmail.com
+
+
+-SELECT Email, STUFF (Email, 2,3, '****') as StuffedEmail from Person		//u gorenjem slucaju je zamijenjen samo znak @ a u ovom jos dva slova poslje njega
+										// @+2 slova jer je skoro u svakom mailu na drugom mjestu znak @
+Email		StuffedEmail
+m@gmail.com	m****ail.com
+j@gmail.com	j****ail.com
+m@gmail.com	m****ail.com
+i@hotmail.com	i****tmail.com
+p@gmail.com	p****ail.com
+pa@gmail.com	p****mail.com
+i@gmail.com	i****ail.com
+i@gmail.com	i****gmail.com
+
+
+
+----------------------------------------------------------------------------
+-TUTORIAL 25	DateTime FUNCTIONS
+
+							   PRECIZNOST
+-TIME		-hh:mm:ss		3-5 bytes	100 nanosekundi
+-DATE		-yyyy:mm:dd		3 bytes		1 dan
+-SMALLDATETIME	-yyyy:mm:dd  hh:mm:ss	4 bytes		1 minuta
+-DATETIME	-yyy:mm:dd   hh:mm:ss	8 bytes		0,00333 nanonesukndi
+-DATETIME2	-yyy:mm:dd   hh:mm:ss	6-8 bytes	100 nanosekundi
+
+
+--------------------------------------------------------------------------------------------------------
+-TUTORIAL 26		ISDATE, DAY, MONTH, YEAR, DATENAME, DATETIME FUNCTIONS
+
+
+ISDATE-provejrava je li data vrijednost valjan datum, vrijeme ili datum i vrijeme, vraca 1(istina) ako je, 0 ako nije  (NE ODNOSI SE NA TOCAN TRENUTNI DATUM, NEGO SAMO JE LI VALJAN OBLIK)
+
+-SELECT ISDATE('ABCDE')		//vraca 0
+-SELECT ISDATE(GETDATE())	//vraca 1
+-SELECT ISDATE('2017-03-12')	//vraca 1
+
+-----------
+DAY- vraca redni broj dana u mjesecu
+
+-SELECT DAY(GETDATE())		//vraca 10, jer je danas 10.03.
+-SELECT DAY('2017-02-22')	//vraca 22
+-SELECT DAY('sdf')		//vraca gresku
+
+-----------
+MONTH-vraca redni broj mjeseca u godini, odnosno redni broj mjeseca u datoj vrijednosti
+
+-SELECT MONTH(GETDATE())	//vraca 3 jer je treci mjesec
+-SELECT MONTH('2017-06-12')	//vraca 6
+
+----------
+YEAR-vraca redni broj godine
+
+-SELECT YEAR(GETDATE())		//vraca 2017
+
+----------
+DATENAME -ima dva parametra, intervala dana koji zelimo i datum, a vraca nam string
+
+-SELECT DATENAME(DAY, GETDATE())	//vraca 10, jer je 10i dan u mjesecu
+-SELECT DATENAME(WEEKDAY, GETDATE())	//vraca 'friday' jer je danas petak
+-SELECT DATENAME(DAYOFYEAR, GETDATE())	//vraca 69, jer je 69i dan u godini
+-SELECT DATENAME(MONTH, GETDATE())	//vraca 'March'
+
+
+
+----------------------------------------------------------------------------------------------
+-TUTORAIL 27 	DatePart DateAdd DateDiff FUNCTIONS
+
+
+DatePart (DatePart, Date)- vraca integer koji predstavlja dio navedenog datuma.Prvi argument je dio datuma koji zelio, a drugi je datum
+DateName (DatePart, Date)- ista funkcija kao DatePart samo sto ova vraca string-tj naziv 
+DateAdd (DatePart, NumberToAdd, Date)-uvecava datum za navedeni broj dana, mjeseci ili godina
+DateDiff (DatePart, StartDate, EndDate)- vraca razliku izmedju dva datuma u danima, mjesecima ili godinama-ovisno o tome koji smo dio datuma naveli(DatePart)
+
+npr
+-SELECT DatePart (weekday, GetDate())		//vraca 2, jer je drugi dan u tjednu (nedjelju uzima kao prvi dan u tjednu)
+-SELECT Datepart(weekday, GetDate())		//vraca Monday jer je ponedjeljak
+-SELECT Datepart(day, GetDate())		//vraca 20, jer je danas 20.03
+-SELECT Dateadd(day, 20,getdate())		//vraca 2017-04-09 15:10:48.713, jer je danas 20.03.2017 i uvecano za 20 dana
+-SELECT Dateadd(month, 20,getdate())		//vraca 2018-11-20 15:11:48.237, jer je danas 20.03.2017 i uvecano za 20 mjeseci
+-SELECT Dateadd(day, -10,GetDate())		//vraca 2017-03-10 15:23:35.503, jer smo dodali -10 dana
+-SELECT DateDiff(MONTH,'2016-02-11', '2016-05-22')	// vraca 3, jer je razlika u mjesecima izmedju dva navedena datuma 3
+-SELECT DateDiff(day,'2016-02-11', '2016-05-22')	//vraca 101, razlika u danima
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+-TUTORIAL 28 	CAST & CONVERT
+
+
+CAST(expression AS data_type [(lenght)])-pretvara izraz u dati bolik, lenght je duzina nrp. nvarchar(10), moze a i ne mora se navesti
+CONVERT(data_type, expression [, style])-ista funkcija, sami drugaciji redoslijed parametara, style moze a i ne mora se navesti
+					- style odredjuje kako ce npr datum bit prikazan dd/mm/yyyy ili yyyy/mm/dd
+
+
+-SELECT CAST( getdate() AS nvarchar)		//vraca 'Mar 21 2017 12:03AM'
+-SELECT CONVERT (nvarchar(20), getdate())	//vraca 'Mar 21 2017 12:07AM'
+-SELECT CONVERT (nvarchar, getdate(),102)	//vrca '2017.03.21'	razliciti stylovi
+-SELECT CONVERT (nvarchar, getdate(),103)	//vraca '21/03/2017'
+
+Ako zelimo pretvoriti tip podata DateTime u samo Date, onda mozemo korsiti
+
+-SELECT CAST(GetDate() AS Date)		ili
+-SELECT CONVERT(Date, GetDate()) 	ali onda ne mozemo koristiti style u CONVERT funkciji
+
+
+Npr ako imamo u jednoj tablici kolone Id i Name i ako ih zelimo prikazati zajedno u jednoj koloni, onda moramo koristiti
+funkcije CAST ili CONVERT  
+
+
+-SELECT ID, Name, Name+ ' '+ cast(id as nvarchar) as [Name-ID]  from Person
+
+ID	Name		Name-ID
+1	Marko		Marko 1
+2	Joispa		Joispa 2
+3	Mateo		Mateo 3
+
+
+
+Npr ako imamo kolonu tipa DateTime i zelimo grupirat po njoj, buduci da ona uzima i datum i vrijeme onda se nece moc grupirat po njoj jer se mora dogodit da su i
+vrijeme i datum isti za jedan redak da bi ih grupiralo, stoga  je potrebno tip podatka DateTime pretvorit u Date
+
+-SELECT CAST(DatumRodjenjea AS Date) as Datum, COUNT(ID) AS Ukupno FROM Osoba GROUP BY CAST(DatumRodjenjea AS Date)
+
+
+Razlika izmedju CAST i CONVERT 
+
+CAST je unvierzalna funkcija, tj korstit je se i u razlicitim okolinama dok je CONVERT karakteristicna samo u SQL-u. CONVERT funkcija ima prednost sto kao argument moze
+imati 'style' koji omogucava da se npr tip podataka DateTime prikaze u razlicitim formatima
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------
+-TUTORIAL 29 	Mathematical functions in SQL
+
+
+ABS(broj)-vraca apsolutnu vrijednost broja
+CEILING(broj)-zaokruziva decimalni broj na prvi veci cijeli broj npr 15.2 ce zaokruzit na 16, a -15.2 na -15
+FLOOR(broj)-zaokruziva decimalni broj na prvi manji cijeli broj npr 15.2 ce zaokruzit na 15, a -15.2 na -16
+POWER(broj, eksponent)- racuna eksponenciju npr POWER(4,3)- vraca 64
+RAND([seed value])-daje slucajni broj izmedju nula i jedan, ako se ne unese parametar tj ako vise puta izvrsimo upit..
+-SELECT RAND()  svaki put daje drugaciji broj
+-SELECT RAND(1) uvijek daje isti broj
+SQUARE(broj)-racuna kvadrat broja, npr SELECT SQUARE(5) vraca 25
+SQRT(broj)-racuna korijen broja, npr SELECT SQRT(81) vraca 9
+ROUND(broj, broj decimala [,(function)])- zaokruzuje ili [odbacuje decimalni dio] datog broja
+
+-SELECT ROUND(182.356, 2)	//vraca 182.36		,2 znaci da zaokruzuje na dvije decimale
+-SELECT ROUND(182.356, 2, 1)	//vraca 182.350 	ako se doda treci parametar to znaci da se broj ne zaokruzuje nego se nakon druge decimale sve ostalo stavlja na 0
+				//ako se stavi 0(nula) ili ako se ne stavi nista kao treci parametar onda se broj zaokruzuje, uostalom se reze
+-SELECT ROUND(182.356, 1,1)	//vraca 182.300
+-SELECT ROUND(182.356, -2)	//vraca 200.000 pocevsi od decimalne tocke zaokruzuje -2 dva mjesta u denso tj 2 mjesta u lijevo
+
+
+
+--------------------------------------------------------------------------------------------------------
+-TUTORIAL 30	Inline table valued functions 
+
+
+Funkcija koja vraca tablicu.Razlika izmedju ovih funkcija i obicnih funkcija oje vracaju neki drugi tip podataka je:
+1.kao return tip podatka pise se Table (RETURN TABLE)
+2.ne stavljaju se "BEGIN" i "END"
+3.struktura tablice je odredjena upitom unutar funkcije
+
+Ako imamo tablciu Osoba i zelimo napisat funkciju koja ce vratiti samo one osobe odredjenog spola, onda funckija izgleda ovako:
+
+-CEATE FUNCTION fOsobePoSpolu (@spol nvarchar(20))
+ RETURN TABLE
+ AS
+ RETURN (SELECT ID, Ime, Prezime FROM Osoba WHERE Spol=@spol)
+
+
+-SELECT * FROM fOsobePoSpolu('Musko')		//pozivanje funkcije
+
+Ove funkcije mozemo koristit unutar JOIN-a. Npr ako imamo tablicu Osoba(ID, Ime, Spol, ID_odjela) i Odjel(ID, Naziv) i zelimo prikazat Ime Spol i Naziv odjela
+a imamo vec kreiranu gornju funkciju. Onda bi JOIN bio
+
+SELECT Ime, Spol, Naziv 
+FROM fOsobePoSpolu('Musko') E
+INNER JOIN  Odjel O
+ON  E.ID_odjela=O.ID
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+-TUTORIAL 31		Scalar user defined functions
+
+
+Funkcije koje mogu a ne moraju imat paremtre tj argumente ali vracaju neku vrijednost. Skalarna funkcija je ona koja vraca samo jednu vrijednost
+
+CREATE FUNCTION Function_name (@Parametar1 DataType @Parametar2 DataType)
+RETURNS DataType
+AS
+BEGIN
+	Function body
+	RETURN Return_DataType
+END
+
+
+-SELECT dbo.Function_name(@Parametar)		//kada se poziva scalar funkcija mora se ispred imena napisati dbo.
+
+Ako imamo kolonu datum_rodjenja i zelimo napravit funkciju koja ce nam racunati koliko osoba ima godina:
+
+-CERATE FUNCTION GodineStarosti (@DatumRodjenja DATE)
+RETURN INT
+AS
+BEGIN
+	DECLARE @Age int
+	SET @Age=DATEDIFF(YEAR, @DatumRodjenja, GETDATE())
+	RETURN @Age
+END
+
+
+Ovo sve isto bi mogli napravit preko PROCEDURE, ALI SKALARNU FUNKCIJU MOZEMO KORISTITI i u SELECT izrazima i u WHERE izrazima DOK PROCEDURU NE MOZEMO, npr
+
+-SELECT ID, Ime, GodineStarosti(DatumRodjenja)	FROM Osoba		//prikazat ce nam samo one osobe koje imaju vise od 20 godina
+ WHERE 	GodineStarosti(DatumRodjenja)>20				//(DatumRodjenja je kolona)
+
+
+
+
+---------------------------------------------------------------------------------------------------------------
+-TUTORIAL 32 	Multi statement inline table functions
+
+
+Ako imamo tablicu Zaposlenik (ID, Name, DateOfBirth, Gender, DepartmentID) i zelimo napravit funkciju da nam prikaziva samo Id,Name,DateOfBirth
+
+
+-CRETAE FUNCTION Funkcija()							//kreira se funkcija
+RETRUNS @Tablica TABLE (Id int, Name nvarchar(20), DateOfBirth DATE)		//kreira se tablica tipa TABLE i njezina struktura
+AS
+BEGIN
+	INSERT INTO Tablica							//u kreiranu tablicu se ubacuju podaci dobiveni preko upita
+	SELECT ID, Name, CAST(DateOfBirth AS DATE) FROM Zaposlenik		// CAST ako je DateOfBirth tipa DATETIME pa hocemo prikazat samo datum a ne i vrijeme
+	RETURN									//funckija vraca tablicu
+END
+
+razlike: ovdje kreiramo strukturu tablice
+        koriste se kljucne rijeci BEGIN i END
+	INLINE TABLE JE BOLJA ZA IZVOÐENJE, I PREKO INLINE FUNCKIJE SE MOGU IZVRSAVATI NAREDBE 'UPDATE'
+
+
+
+
+------------------------------------------------------------------------------------------------------------
+-TUTORAIL 33	Importatn concepts related to functions
+
+
+
+DETERMINISTIC FUNCTIONS- deterministicke funkcije su one koje ce uvijek vratiti istu vrijednost za dati parametar ili bazu ako nije u medjuvremenu mijenjana, npr
+
+-SELECT COUNT(*) FROM Table	//ako ima 5 redaka u tablici, ovaj upit tj funkcija COUNT() ce uvijek vratiti istu vrijednost, ako redak nije dodan illi izbrisan
+-SELECT SQUARE(3)		//uvijek ce vratiti 9
+
+Sve agregatne funkcije su deterministicke (SUM(), COUNT(), AVG()) i funckije SQUARE() POW()
+----------
+NONDERTEMINISTIC FUNCTIONS-nedeterministièke funkcije su one koje ce svaki put dat drugaciju vrijednost npr,
+
+-SELECT GETDATE()	//uvijek ce nam dati razlicito vrijeme (sekunde)
+-SELECT RAND()		//NONDETERMINISTIC ako se ne unese argument uvijek ce dati razlicit broj izmedju 0 i 1
+-SELECT RAND(1)		//DETERMINISTIC ako se ne unese argument uvijek ce dati isti broj izmedju 0 i 1, jer joj je dodan argument
+
+
+--------------
+WITH ENCRYPTION
+
+Ako zelimo enkriptirat tekst funkcije tj da se njezin tekst nakon kreiranja ne moze vidjet onda se koristi naredba WITH ENCRYPTION, npr
+
+-CRETAE FUNCTION getNameById (@ID)		//vraca ime osobe na osnovu proslijedjenog ID-a
+RETURNS nvarchar(20)
+WITH ENCRYPTION
+AS
+	RETURN(SELECT Name FROM Person WHERE Id=@ID)
+BEGIN
+
+Kada se ovako kreira funkcija i ako zelimo vidjet njezin tekst sa naredbom
+
+-sp_helptext	getNameById	//necemo moci dobit tekst funckije
+
+Takodjer se ne moze promijeniti ni naziv kolone "Name" za koju je vezana ova funkcija.
+
+-----------
+WITH SCHEMABINDING
+
+Ako imamo kreiranu funkciju kao u gronjem primjeru, i ako zelimo izbrisat tablicu Person, to mozemo napravit, ali onda kad budemo pozvali tu funkciju javit ce nam
+gresku jer je ona vezana za tablicu koja je zbrisana. 
+AKO ZELIMO ONEMOGUCIT BRISANJE TABLICE ZA KOJU JE OVA FUNKCIJA VEZANA KORISTIMO NAREDBU "WITH SCHEMABINDING" PRILIKOM KREIRANJA FUNCKIJE
+
+-CRETAE FUNCTION getNameById (@ID)		
+RETURNS nvarchar(20)
+WITH SCHEMABINDING
+AS
+	RETURN(SELECT Name FROM dbo.Person WHERE Id=@ID)		//mora se stavit dbo. prije imena tablice
+BEGIN
+
+Nakon kreiranja ove funkcije ako pokusamo izvrsit naredbu
+
+-DROP TABLE Person		//javit ce nam gresku
+
+
+
+
+---------------------------------------------------------------------------------------------------------
+-TUTORIAL 34	Tempoorary table	privremene tablice
+
+LOCAL TEMPORARY TABLE
+-TEMPORARY TABLE-privremene tablice kreiraju se na slican nacin kao i obicne tablice samo sto se ispred naziva stavlja znak #
+
+-CREATE TABLE #Person (ID int, Name varchar(30))	//ova tablice se kkreira u bazi TempDB
+
+PRIVREMENA TABLICA JE VIDLJIVA SAMO U ONOM PROZORU (KONEKCIJI) U KOJEM JE KREIRANA, tj kad otvorimo prozor za novi upit (New Query) tablica nam nece biti dstupna,
+I DOK SE TAJ PROZOR, U KOJEM JE KREIRANA TABLICA KREIRANA, ZATVORI TABLICA CE NESTATI TJ. BIT CE IZBRISANA.
+
+Ako se privremena tablica kreira unutar pohranjenog postupka (STORED PROCEDURE) ona ce nestati odma nakon pozivanja postupka, npr
+
+-CERATE PROCEDURE spProcedura
+AS
+BEGIN
+	CREATE TABLE #Person (ID int, Name varchar(30))
+
+	INSERT INTO #Person VALUES (1, 'Ana')
+	INSERT INTO #Person VALUES (2, 'Ante')
+	INSERT INTO #Person VALUES (3, 'Ivo')
+
+	SELECT * FROM #Person
+END
+
+Ako nakon toga pozovemo proceduru
+
+-EXECUTE spProcedura	// ona ce nam vratiti vrijednosti 1 Ana, 2 Ante, 3 Ivo i domah se brise ova privremena tablica 
+
+-SELECT * FROM #Person	//javit ce nam gresku
+
+
+MOGUCE JE KREIRATI VISE PRIVREMENIH TABLICA ISTOG IMENA U RAZICITIM PROZORIMA(NEW QUERY). Mozemo ih pronaci u bazi TempDB sa istim imenom ali na kraju imaju
+razlicite slucajne brojeve koji im se automatski dodavaju
+
+--------
+GLOBAL TEMPORARY TABLE 
+
+KREIRAJU SE NA ISTI NACIN KAO I LOCAL, SAMO STO SE ZA GLOBAL STAVLJAJU DVA ZNAKA # ISPRED IMENA.
+RAZLIKA IZMEDJU LOCAL I GLOBAL: -global je vidljiva u svim prozorima i ne mozemo imati vise gloablnih privemenih tablica istog imena
+				-ona nestaje tek kada se svi prozori zatvore
+				-globalna tablica ne dobiva slucajni broj na kraju imena u bazi TempDB
+
+
+
+
+
+----------------------------------------------------------------------------------------
+-TUTORIAL 35	Indexes in SQL
+
+
+Indeksi se korite kako bi pomogli upitima da brze i jednostavnije pronadju podatke.
+
+
+-CRETAE INDEX Index_Name ON Table_Name (Column_Name ASC/DESC)
+
+ID	Name	Salary	Male
+1	Ana	2500	Zensko
+2	Ante	1500	Musko
+3	Pero	1900	Musko
+4	Ivo	3500	Musko
+5	Iva	1400	Zensko
+
+Npr ako imamo tablicu Person(ID, Name, Salary, Male) i zelimo napravit upit kojim cemo dobit place izmedju 2000 i 5000
+
+-SELECT * FROM Person WHERE Salary>2000 AND Salary<3000		//program onda mora provjeravat placu za svaki redak
+
+
+Ako napravimo INDEX
+
+-CREATE INDEX poredakPlace ON Person (Salary ASC)	//ovaj ce nam index sortirat osobe po placi tj kao da se u pozadini kreira tablica npr
+
+Salary	AdresaRedka
+1400	neki heksadecimalni broj
+1500	--//--
+1900	--//--
+2500	--//--
+3500	--//--
+
+Nakon sto se kreira INDEX, sada kada se pozove upit SELECT * FROM Person WHERE Salary>2000 AND Salary<3000 on ce samo naci "Adresu" prvog(2000) redka i zadnjeg(3000) 
+
+Ako zelimo izbrisat INDEX onda prije njegovog imena moramo stavit ime tablice i tocku
+
+-DROP INDEX Person.poredakPlace		//brise INDEX
+
+
+
+
+
+------------------------------------------------------------------------------------------
+-TUTORIAL 36		Clustered and nonclustered indexes-gurpirani i negrupirani indeksi
+
+CLUSTERED INDEX-tablica moze imat smao jedan grupirani index, tj po tom indexu su podaci grupirani u tablici. Kada se izvrši upit SELET * FROM table
+		podaci ce bit prikazani onim redoslijedom kako je to definirano u CLUSTERED INDEX-u. 
+NONCLUSTERED INDEX-tablica moze imat vise takvih indexa, oni sluze kao pokazivaci za lakse pronalazenje podataka. Npr ako se napravi index na koloni Salary-placa
+		i hocemo samo one redke koji imaju placu izmedju 1000 i 2000, ovaj indekx pomaze tablici da ne mora provjeravat svaki redak nego ce samo doci do redka
+		sa placom od 1000 i od 2000 i vratit sve redke izmedju njih. Ovaj indeks je sporiji, jer ako upitom zelimo prikazat Osobu koja ima placu 1000 ali zelimo
+		prikazat i njezin Spol i Ime onda upit mora gledat i na tablicu i onda vratit te podatke. Jer kada se kreira index on kao da kreira tablicu u pozadani 
+		ali koja sadrzi smao one redke navedene prilikom kreiranja indexa
+
+
+Prilikom kreiranja tablice, SQL automatski kreira clustered index na koloni koja je primarni kljuc tj (ID). Npr ako imamo kolonu ID koja je primarni kljuc, 
+i prilikom unosenja podataka ID ne unosimo redoslijedom, tj ako se ne stavi autoincrement i ako ID za prvi redak bude 2, zatim za drugi 4, za trci 1 itd,
+kada se napravi upit SELECT * FROM Osoba, zbog indexa koji je automatski kreiran na koloni ID jer je primarni kljuc, on ce nam vratit podatke sortirane prema ID-u.
+
+-EXECUTE sp_helpindex table_name	//upit koji nam vraca sve indexe za datu tablicu
+
+Ako zelimo napravit slozeniji index tj mjesoviti koji se sastoji od dva stupca
+
+-CREATE CLUSTERED INDEX index_name ON table_name (Colmn_name ASC(DESC), column_name ASC(DESC))
+
+Npr. ako zelimo napravit index koji ce nam srotirat podatke prvo po spolu pa onda po placi
+
+
+-CRETAE CLUSTERED INDEX slozeniIndex ON Person (Gender DESC, Salary ASC)	//ovo ce nam javit gresku ako nismo izbrisali vec postojeci index koji je
+										//SQL automatski stvorio, jer tablica ne moze imat dva CLUSTERED INDEXA
+
+Kada se kreira ovaj index i nakon toga izvrsimo upit SELECT * FROM Person, podaci ce bit sortirani po spolu u opadajucem redu a zatim po placi u rastucem tj.
+za one redke kojima je spol isti prvo ce se prikazati oni s manjom placom
+
+
+-DROP INDEX tableName.IndexName		//brisanje indexa, ali za automatski kreirani index javit ce nam gresku, njega moramo izbrisat preko dizajnera
+
+
+-CREATE NONCLUSTURED INDEX indexname ON table_name (Column_name ASC(DESC))
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------
+-TUTORIAL 37	 Unique and NON Unique Indexes in SQL
+
+
+Prilikom kreiranja tablice SQL automatski kreria CLUSTURED i UNIQUE index na koloni koja je oznacena kao primarni kljuc i ima isti naziv kao i primarni kljuc.
+Taj se index ne moze izbrisat preko upita nego samo graficki. KADA SE IZBRISE TAJ INDEX AUTOMATSI SE BRISE I PRIMARNI KLJUC TJ, OMOGUCUJE SE UNOSONJE DUPLIH VRIJEDNOSTI
+ZA TU KOLONU (nema ogranicenja).
+
+-CERATE UNIQUE NONCLUSTURED INDEX index_name ON table_name (column_name, column_name)		//kreiranje unique nonclustured indexa
+
+Npr ako se napravi index
+
+-CREATE UNIQUE NONCLUSTURED INDEX ime_prezime ON Person (FirstName, LastName)		//ovo ce onemogucit unosenje osoba kojima se podudara i ime i prezime
+
+
+Ovo se moze ostvariti i preko UNIQUE CONSTRAINT-a (tutorial 9). KADA SE KREIRA UNIQUE CONSTRAINT U POZADINI SE KREIRA I UNIQUE INDEX ISTOG IMENA.
+DAKLE UNIQUE INDEX SE MOZE KREIRATI KROZ UNIQUE CONSTRAINT(ogranicenje) ILI UPITOM: CREATE UNIQUE INDEX....
+Primarni kljuc kreira UNIQUE CLUSTURED INDEX dok Unique Constraint kreira UNIQUE NONCLUSTURED INDEX.
+UNIQUE INDEX i UNIQUE CONSTRAINT se ne moze napraviti na koloni ako tablica vec sadrzi duple vrijednosti za tu kolonu. Potrebno je prvo izbrisati duple vrijednosti
+da bi se omogucilo kreiranje INDEXA ili CONSTRAINTA.
+
+-------------------------------------------------------------------------------------------
+-TUTORIAL 39	VIEWS in SQL
+
+
+VIEW je pohranjeni upit (SELECT upit).
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email	    GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+5	Petra	p@gmail.com	2	2100	NULL
+
+i tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York    
+
+i zelimo napravit upit koji nam vraca
+
+Name	Email		Salary	DepartmnetName
+Marko	m@gmail.com	1000	IT                            
+Joispa	j@gmail.com	2200	HR                            
+Mateo	m@gmail.com	3000	Developer                     
+Ivanko	i@hotmail.com	1500	Developer     
+
+kreirali bi upit preko JOIN-a
+
+-SELECT  Name, Email, Salary, DepartmentName
+FROM Person P
+INNER JOIN tblDepartment D
+ON P.DepartmentID=D.ID      
+
+
+KREIRANJE VIEW-a
+
+-CREATE VIEW personAndDepartment			//kreira se pogled, dodaju se samo kljucne rijeci CREATE VIEW View_Name AS i upit kojeg on sprema
+AS
+SELECT  Name, Email, Salary, DepartmentName
+FROM Person P
+INNER JOIN tblDepartment D
+ON P.DepartmentID=D.ID
+
+-SELECT * FROM personAndDepartment		//pozivanje VIEW-a, VIEW SE MOZE TRETIRATI KAO VIRTUALNA TABLICA, jer ako napravimo sljedeci upit..
+
+-SELECT Name, DepartmentName FROM personAndDepartment		//ovo ce nam vratiti
+
+Name	DepartmentName
+Marko	IT                            
+Joispa	HR                            
+Mateo	Developer                     
+Ivanko	Developer                     
+
+
+PREDNOSTI VIEW-A:-mogu se koristiti kako bi smanjili složenost podataka u bazi, jer na ovaj nacin podatke iz dvije tablice mozemo spojiti u jednu
+		 -kroz VIEW mozemo ograniciti pristup odredjenim stupcima(npr da se ne navede stupac Salary) ili redcima(koristeci WHERE izraz u SELECTU) u tablici 
+		 
+
+
+
+
+--------------------------------------------------------------------------------------------------
+-TUTORIAL 40        Updatable views in sql	//pogledi koji se mogu azurirati
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email	    GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+5	Petra	p@gmail.com	2	2100	NULL
+
+
+mozemo kreirati pogled kojim necemo prikazati placu radnika
+
+-CREATE VIEW sveOsimPlace
+AS
+SELECT ID, Name, Email, GenderID, DepartmentID FROM Person
+
+Ako nakon toga napravimo upit 
+
+-SELECT * FROM sveOsimPlace
+
+ID	Name	Email	    GenderID	DepartmentID
+1	Marko	m@gmail.com	1	1
+2	Joispa	j@gmail.com	2	2
+3	Mateo	m@gmail.com	1	3
+4	Ivanko	i@hotmail.com	1	3
+5	Petra	p@gmail.com	2	NULL
+
+
+KADA SE KREIRA VIEW ONDA PREKO NJEGA MOZEMO IZVRSAVAT NAREDBE SELECT, UPDATE, INSERT I DELETE KOJE CE NAPRAVIT PROMJENE NA BAZNOJ TABLICI TJ ONOJ TABLICI NA KOJOJ JE 
+KREIRAN VIEW.
+
+-UPDATE sveOsimPlace SET Name='Jousa' WHERE ID=1
+
+Ako nakon ovog izvrsimo
+
+-SELECT * FROM sveOsimPlace 
+
+ID	Name	Email	    GenderID	DepartmentID
+1	Jousa	m@gmail.com	1	1			//isto bi dobili upitom SELECT * FROM Person, samo bi prikazalo i kolonu Salary
+2	Joispa	j@gmail.com	2	2			//
+3	Mateo	m@gmail.com	1	3
+4	Ivanko	i@hotmail.com	1	3
+5	Petra	p@gmail.com	2	NULL
+
+
+Isto tako mozemo koristiti naredbe
+
+-DELETE FROM sveOsimPlace WHERRE ID=5
+
+Ako sada nparavimo upit
+
+-SELECT * FROM Person
+
+ID	Name	Email	    GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+
+
+DAKLE UPITIMA INSERT, DELETE I UPDATE nad VIEW-om mijenjamo podatke u tablici nad kojom je taj VIEW kreiran
+
+
+--------
+
+VIEW se moze kreirat i na dvije tablice, npr ako imamo tablicu Person
+
+ID	Name	Email	GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+5	Petra	p@gmail.com	2	2100	NULL
+6	Pasko	pa@gmail.com	2	1900	NULL
+7	Igor	i@gmail.com	1	1890	NULL
+
+i tablicu Department
+
+ID	DepartmentName	Location
+1	IT               London                        
+2	HR               Paris                         
+3	Developer        New York                      
+4	HTML             Dubai       
+
+
+mozemo kreirat VIEW
+
+-CREATE VIEW tblPersonDepartment
+  AS
+  SELECT Person.ID, Name, Email, DepartmentName FROM Person
+  JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.ID  
+
+
+-SELECT * FROM tblPersonDepartment
+
+ID	Name	Email		DepartmentName
+1	Marko	m@gmail.com	IT                            
+2	Joispa	j@gmail.com	HR                            
+3	Mateo	m@gmail.com	Developer                     
+4	Ivanko	i@hotmail.com	Developer 
+
+
+Ako napravimo UPDATE upit nad ovim pogledom npr
+
+-UPDATE tblPersonDepartment SET DepartmentName='IT' WHERE Name='Mateo' 	
+
+Nakon ovog upita izlisatmo sve iz VIEW-a
+
+-SELECT * FROM tblPersonDepartment   
+
+ID	Name	Email	DepartmentName
+1	Marko	m@gmail.com	IT                            
+2	Joispa	j@gmail.com	HR                            
+3	Mateo	m@gmail.com	IT                            
+4	Ivanko	i@hotmail.com	IT                   //NEOCEKIVANO se promijenio i DepartmentName i za Ivanka
+
+U biti naredbom UPDATE promijenio se naziv u tablici Department iz Developer u IT
+
+
+-SELECT * FROM Person
+
+ID	Name	Email	GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+5	Petra	p@gmail.com	2	2100	NULL
+6	Pasko	pa@gmail.com	2	1900	NULL
+7	Igor	i@gmail.com	1	1890	NULL
+
+-SELECT * FROM Department
+
+ID	DepartmentName	Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	IT                            	New York                      
+4	HTML                          	Dubai                                            
+
+
+ZAKLJUCAK: AKO JE VIEW KREIRAN PREKO VISE TABLICA TADA UPDATE UPITI MOZDA NECE RADITI OCEKIVANO.
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 41 	Indexed view in sql	Indeksi na pogledima
+
+
+1.Ako zelimo napraviti VIEW na kojem cemo kasnije napraviti INDEX onda prilikom kreiranja tog VIEW-a treba koristiti kljucne rijeci "WITH SCEHMABINDING"         
+2.Ako se u SELECT izrazu koristi AGREGATNA funkcija i ako postoji mogucnost da ona vrati NULL vrijednost, onda se mora navest zamjenska vrijednost (funkcija ISNULL)
+3.Ako se prilikom kreiranja VIEW-a koristi GROUP BY onda se mora koristiti funkcija COUNT_BIG(). Moze se koristiti i funkcija COUNT() ali se onda ne moze
+  kreirat INDEX na tom VIEW-u
+4.Bazna tablica u pogledu se mora navesti sa dva imena tj sa "dbo." ispred imena tablice npr dbo.Person  
+
+
+Ako imamo tablicu Artikli
+
+ID	Name	Price
+1	Olovka	10
+2	Knjiga	20
+3	Gumica	5
+4	Teka	15
+
+i tablicu Prodaja
+
+ArtikalID	Kolicina
+1		15
+3		10
+4		25
+2		15
+1		10
+3		30
+4		25
+2		10
+
+
+-  CREATE VIEW ArtikliProdaja						//kreiranje VIEW-a
+  WITH SCHEMABINDING
+  AS
+  SELECT Name,
+  SUM(ISNULL((Price*Kolicina), 0)) as TotalSales,			//mnozimo cijenu sa kolicinom, tj koliko je puta prodano 
+  COUNT_BIG(*) AS TotalTransactions
+   FROM dbo.Artikli
+  JOIN dbo.Prodaja
+  ON dbo.Artikli.ID=dbo.Prodaja.ArtikalID
+  GROUP BY Name 
+
+- SELECT * FROM ArtikliProdaja	nam daje
+
+
+Name	TotalSales	TotalTransactions
+Gumica	200		2
+Knjiga	500		2
+Olovka	250		2
+Teka	750		2
+
+
+BUDUCI DA VIEW NE SPREMA PODATKE, I KADA SE IZVRSAVA OVAJ UPIT "SELECT * FROM ArtikliProdaja" SVAKI PUT SE IZVRSAVA UPIT KOJEG  OVAJ VIEW PREDSTAVLJA.
+
+POSTO VIEW NE SPREMA PODATKE PRVI INDEX KOJI SE KREIRA NA NJEMU BI TREBAO BITI "UNIQUE CLUSTERED"
+
+- CREATE UNIQUE CLUSTERED INDEX indxArtikliProdajaName		//kreiranje INDEXA na VIEW-u
+  ON ArtikliProdaja (Name)
+
+
+Nakon kreiranja ovog INDEXA na VIEW-u pozivanjem upita "SELECT * FROM ArtikliProdaja" ne mora se pono izvrsavat upit na baznoj tablici kojeg predtavlja ovaj 
+VIEW  nego se podaci uzimaju iz INDEX-a
+
+
+
+
+------------------------------------------------------------------------------------------------------------
+-TUTORIAL 42	 View limitations in sql	Ogranicenja kod pogleda
+
+
+1.Nemoguce je kreirati VIEW sa parametrom tj npr
+
+-CREATE VIEW PersonDetails			//javit ce nam gresku
+@ID int
+AS
+SELECT ID, Name, Gender WHERE ID=@ID	
+
+Zato je moguce koristit WHERE iskaze kod kreiranog VIEW-a, npr
+
+-CREATE VIEW PersonDetails		//prvo kreiramo VIEW
+AS
+SELECT ID, Name, Gender
+
+-SELECT * FROM PersonDetails WHERE ID=...
+
+
+2.Nemoguce je koristiti naredbu ORDER BY prilikom kreiranja VIEW-a
+
+-CREATE VIEW PersonDetails		//javit ce nam gresku
+AS
+SELECT ID, Name, Gender ORDER BY Name		
+
+3.Nemoguce je kreirati VIEW na privremenoj tablici(TEMPORARY Table)	
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 43	DML trigers in sql
+
+Ako imamo tablicu 
+
+ID	Name	Email	GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+
+i zelimo napravit okidac koji ce prilikom svakog unosa (INSERT) u ovu tablicu unijeti i redak u tablicu PersonInsertInfo
+
+ID	Info
+1	Novi zaposlenik sa ID=1 unesen 09.05.2017
+
+
+-CREATE TRIGGER tr_Person_Insert
+ON Person
+FOR INSERT
+AS
+BEGIN
+	DECLARE @ID int
+	SELECT @ID=ID from inserted
+
+	INSERT INTO PersonInsertInfo (ID, Info) values
+	(@ID, 'Novi zaposlenik sa ID='+ CAST(@ID as nvarchar(5))+' je dodan '+CAST(GETDATE() as nvarchar(10)))
+END
+
+"SELECT @ID=ID from inserted" ovo "inserted" je tablica koja se sastoji od samo jednog redka koji je unesen prilikom naredbe INSERT u tablici Person i ona je 
+dostupna samo u okidacu (TRIGGERU). Zato cemo naredbom "SELECT @ID=ID from inserted" u okidacu u deklariranu varijablu ID spremit ID osobe koja se trenutno unijela.
+
+Isto tako ako zelimo napravit okidac koji ce prilikom svakog brisanja (DELETE) u ovu tablicu unijeti i redak u tablicu PersonInsertInfo
+
+-CREATE TRIGGER tr_Person_Delete		//promjenili smo ime okidaca
+ON Person
+FOR DELETE					//druga akcija, DELETE umjesto INSERT
+AS
+BEGIN
+	DECLARE @ID int
+	SELECT @ID=ID from deleted		//druga tablica, deleted umjesto inserted
+
+	INSERT INTO PersonInsertInfo (ID, Info) values
+	(@ID, 'Novi zaposlenik sa ID='+ CAST(@ID as nvarchar(5))+' je dodan '+CAST(GETDATE() as nvarchar(10)))
+END
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------
+-TUTORIAL 44	AFTER UPDATE TRIGGER
+
+Ako imamo tablicu Person
+
+ID	Name	Email	GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+4	Ivanko	i@hotmail.com	1	1500	3
+
+i ako napravimo ovakav okidac za UPDATE
+
+-CREATE TRIGGER tr_Person_OnUpdate
+ON Person
+FOR UPDATE
+AS
+BEGIN
+	SELECT * FROM  deleted
+	SELECT * FROM inserted
+END
+
+Ako sada izvrsimo upit UPDATE npr.
+
+-UPDATE Person SET Name='Ivana', Email='ivana@hotmail.com', GenderID=2 Salary=1750, DepartmentID=2 WHERE ID=4
+
+kao rezultat dobit cemo
+
+ID	Name	Email			GenderID	Salary	DepartmentID		//deleted tablica, stari podaci
+4	Ivanko	i@hotmail.com	1		1500	3
+
+ID	Name	Email			GenderID	Salary	DepartmentID		//inserted tablica, novi podaci
+
+
+Dakle jedino su kod UPDATE TRIGGERA  dostupne  deleted i inserted tablica.
+4	Ivana	ivana@hotmail.com	2	1750	2
+
+----------------
+Ako zelimo napraviti okidac na UPDATE akciju da se npr prilikom promijene bilo kojeg stupca nekog redka u drugu tablicu spremi npr
+
+EMmployee with id=2 Name changed from John to Marks, Salary from 2000 to 2300....
+
+
+-CREATE TRIGGER tr_Person_OnUpdate
+ON Person
+AS
+BEGIN
+	DECLARE @ID int
+	DECLARE @OldName nvarchar(20), @NewName nvarchar(20)		//koristimo Old... i New varijable kako bi smo spremili stare vrijednosti i npve vrijednosti
+	DECLARE @OldSalary int, @NewSalary int				//promijenjenih stupaca
+	DELCARE @OldGenderID int, @NewGenderID int			
+	DECLARE @OldDepId int, @NewDepId int
+
+	DECLARE @AuditString nvarchar(1000)
+
+	SELECT * INTO #TempTable FROM inserted				//redak koji se ubacuje odnosno nove vrijednosti koje se unose u tablicu
+									//se spremaju u privremenu tablicu "#TempTable" (Temporary Table)
+	WHILE(Exists(SELECT ID FROM #TempTable))			//Koristi se petlja, jer je mogu ce napravit upit "UPDATE Person ......... WHERE ID IN(3,4,5)"
+	BEGIN								//pa ce se onda tablica inserted odnosno #TempTable sastojat od vise redaka
+		SET @AuditString=''
+
+		SELECT TOP 1 @ID=Id, @NewName=Name, @NewGenderID=GenderID, @NewSalary=Salary, @NewDepId=DepartmentID
+		FROM #TempTable
+
+
+		SELECT  @OldName=Name, @OldGenderID=GenderID, @OldSalary=Salary, @OldDepId=DepartmentID
+		FROM deleted WHERE ID=@ID
+
+		SET @AuditString='Employee with ID= ' + CAST(@ID AS NVARCHAR(4))+' changed '
+		if(@OldName!=@NewName)
+			SET @AuditString=@AuditString +' Name from '+@OldName +' to '+@NewName
+
+		if(@OldGenderID!=@NewGenderID)
+			SET @AuditString=@AuditString +' GenderID from '+CAST(@OldGenderID AS NVARCHAR(4))+' to '+CAST(@NewGenderID AS NVARCHAR(4))
+
+		if(@OldSalary!=@NewSalary)
+			SET @AuditString=@AuditString +' Salary from '+CAST(@OldSalary AS NVARCHAR(10))+' to '+CAST(@NewSalary AS NVARCHAR(4))
+
+		if(@OldDepId!=@NewDepId)
+			SET @AuditString=@AuditString +DepartmentID from '+CAST(@OldDepId AS NVARCHAR(4))+' to '+CAST(@NewDepId AS NVARCHAR(4))
+
+		INSERT INTO tblEmployeeAudit VALUES (@AuditString)	//samo AuditString jer je ID autoincrement
+		
+		DELETE FROM #TempTable WHERE ID=@ID
+
+	END
+END
+
+
+Nakon ovog okidaca ako napravimo sljedeci upit
+
+- Update Person SET Name='Patrik', Salary=2200, DepartmentID=2 where ID=6
+
+u tablicu tblEmployeeAudit ce nam se unijeti redak
+
+ID	AuditString
+1	Employee with ID= 6 changed  Name from Pasko to Patrik Salary from 1900 to 2200
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 45	Instead of insert trigger	umjesto insert okidaca
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email	     GenderID	Salary	DepartmentID
+1	Marko	m@gmail.com	1	1000	1
+2	Joispa	j@gmail.com	2	2200	2
+3	Mateo	m@gmail.com	1	3000	3
+
+i sa njom povezanu tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai   
+
+i ako napravimo pogled(VIEW) takav da nam prikazuje kolone Name, Email, GenderID iz tablice Person i DepartmentName iz tablice Department ID
+
+-  CREATE VIEW vwPersonDepart
+  AS
+  SELECT ID, Name, Email, GenderID, DepartmentName
+  FROM Person
+  INNER JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.DepID                     
+
+I sad ako zelimo na ovakav VIEW uraditi INSERT upit npr
+
+- INSERT INTO vwPersonDepart VALUES (8, 'Franjo', 'fr@gmail.com', 2, 'HTML')
+
+Msg 4405, Level 16, State 1, Line 1
+View or function 'vwPersonDepart' is not updatable because the modification affects multiple base tables.
+
+javit ce nam gresku, jer SQL  ne zna koje redke treba ubaciti u koju tablicu. Jer se podaci ne spremaju u VIEW nego u baznu tablicu nad kojima je taj VIEW kreiran,
+a posto se ovaj VIEW sastoji od dviju baznih talica SQL javlja gresku.
+Ono sto se treba napravit je INSTEAD OF INSERT TRIGGER, na nacin da cemo iz ovog upita(inserted table) uzet DepartmentName i naci mu ID u tblDepartment, i onda 
+ostale vrijendosti ubacit u tablicu Person.
+Npr ako se kreira ovakakv okidac
+
+-  CREATE TRIGGER tr_vwPersonDepart_INSTEADOFINSERT
+  ON vwPersonDepart
+  INSTEAD OF INSERT
+  AS
+  BEGIN
+	SELECT * FROM inserted
+	SELECT * FROM deleted
+  END
+
+I sada izvrsimo ovo
+
+-INSERT INTO vwPersonDepart VALUES ( 'Franjo', 'fr@gmail.com', 2, 'HTML')
+
+dobit cemo
+
+Name	Email	GenderID	DepartmentName
+Franjo	fr@gmail.com	2	HTML                          //jer se ovo nalazi u tablici inserted iako nista nije uneseno u baznu tablicu,
+								// iz tablice deleted nismo dobili nista jer nista nije izbirsano
+
+
+-CREATE TRIGGER tr_vwPersonDepart_Instead_Of_Insert
+ON vwPersonDepart
+INSTEAD OF INSERT
+AS
+BEGIN
+	DECLARE @DepID int
+
+	SELECT @DepID=ID FROM tblDepartment				//prvo pronalazimo ID DeparmtnetName-a i spremamo ga u varijablu @DepID
+	join vwPersonDepart
+	on tblDepartment.DepartmentName=vwPersonDepart.DepartmentName
+
+	IF(@DepID IS NULL)						//ako je netko unio za DepartmentName neki naziv koji ne postoji u tablici tblDepartment
+	BEGIN								//onda se preskace sve i ne izvrsava se nista
+		RAISERROR ('Invalid Department Name. Statement terminated', 16, 1)
+		return
+	END
+	
+	INSERT INTO Person (ID,Name, Email, GenderID, DepartmentID)	//unos u tablicu Person, unose se podaci iz tablice inserted
+	SELECT ID, Name, Email, GenderID, @DepID FROM inserted
+
+END
+
+
+
+KADA SE KREIRA VIEW NA TABLICU ONDA SE PREKO NJEGA MOGU IZVRSAVATI INSERT, DELETE I UPDATE UPITI. AKO SE VIEW SASTOJI OD DVIJU ILI VISE BAZNIH TABLICA ONDA TI UPITI 
+NISU MOGUCI NEGO SE MORAJU KORISTITI "INSTEAD OF ..." TRIGEERI. UPITI SE MOGU IZVRSITI JEDINO AKO SU NJIME OBUHVACENE KOLONE SAMO JEDNE BAZNE TABLICE.
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------
+-TUTORIAL 46	Instead Of Update trigger
+
+Ako imamo tablicu Person
+
+ID	Name	Email			Salary	DepartmentID
+1	Marko	m@gmail.com		1000	1
+2	Joispa	j@gmail.com		2200	2
+3	Mateo	m@gmail.com		3000	3
+4	Ivana	ivana@hotmail.com	1750	2
+
+i sa njom povezanu tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai  
+                        
+
+i ako napravimo pogled(VIEW) takav da nam prikazuje kolone ID, Name, Email iz tablice Person i DepartmentName iz tablice Department ID
+
+-CREATE VIEW vwPersonDepart2
+  AS
+  SELECT ID, Name, Email, DepartmentName
+  FROM Person
+  INNER JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.DepID
+
+-SELECT * FROM vwPersonDepart2
+
+ID	Name	Email		DepartmentName
+1	Marko	m@gmail.com	IT                            
+2	Joispa	j@gmail.com	HR                            
+3	Mateo	m@gmail.com	Developer                     
+4	Ivana	ivana@hotmail.com	HR                            
+6	Patrik	pa@gmail.com	HR    
+
+I sad ako zelimo na ovakav VIEW uraditi UPDATE upit npr
+
+-UPDATE vwPersonDepart2 SET Name='Marina', DepartmentName='HR' WHERE ID=1
+
+Msg 4405, Level 16, State 1, Line 2
+View or function 'vwPersonDepart2' is not updatable because the modification affects multiple base tables.
+
+SQL ce namjavit gresku za gornji upit, jer SQL  ne zna koje redke treba ubaciti u koju tablicu. Jer se podaci ne spremaju u VIEW nego u baznu tablicu nad kojima je taj VIEW kreiran,
+a posto se ovaj VIEW sastoji od dviju baznih talica SQL javlja gresku.
+Ono sto se treba napravit je INSTEAD OF UPDATE TRIGGER
+
+-  CREATE TRIGGER tr_vwPersonDepart2_InsteadOfUpdate
+  ON vwPersonDepart2
+  INSTEAD OF UPDATE
+  AS
+  BEGIN 
+
+  --ako se slucajno upitom bude htio mijenjat ID, to treba onemogucit jer je on PRIMARNI kljuc
+	IF(UPDATE(ID))
+	BEGIN
+		RAISERROR('ID cannot be changed',16,1)
+		RETURN
+	END
+
+	IF(UPDATE(DepartmentName))				//ovo znaci:ako se upitom UPDATE zeli promijeniti kolona "DepartmentName"
+	BEGIN
+		DECLARE @DepID int
+
+		SELECT @DepID=DepID FROM tblDepartment		//moramo prvo naci ID u tablici tblDepartment za taj DepartmentName
+		JOIN inserted 
+		on tblDepartment.DepartmentName=inserted.DepartmentName
+
+
+		IF(@DepID IS NULL)				//ako nije ID pronadjen tj ako je pogresno upisano DepartmentName onda se preskace sve
+		BEGIN
+			RAISERROR('DepartmentName is invalid',16,1)
+			RETURN
+		END
+
+		UPDATE Person SET DepartmentID=@DepID		//ako se pronadje ID, onda mijenjamo DepartmentID kolonu u tablici Person
+		FROM inserted
+		JOIN Person
+		ON Person.ID=inserted.ID
+	END
+
+	IF(UPDATE(Name))					//ovo znaci:ako se upitom UPDATE zeli promijeniti kolona "Name"
+	BEGIN
+		UPDATE Person SET Name=inserted.Name FROM inserted
+		JOIN Person
+		ON Person.ID=inserted.ID
+	END
+
+
+	IF(UPDATE(Email))
+	BEGIN
+		UPDATE Person SET Email=inserted.Email FROM inserted
+		JOIN Person
+		ON Person.ID=inserted.ID
+	END
+  END
+--------------
+
+Ako izvrsimo sljedeci upit u kojem smo za DepartmentName naveli pogresan naziv onda se nece izvrsit nista jer se nece moci pronaci ID u tablici tblDepartment za taj naziv
+
+-UPDATE vwPersonDepart2 SET Name='Marina', DepartmentName='HnjR' WHERE ID=1
+
+Msg 50000, Level 16, State 1, Procedure tr_vwPersonDepart2_InsteadOfUpdate, Line 25
+DepartmentName is invalid
+
+
+- UPDATE vwPersonDepart2 SET Name='Marina', DepartmentName='HR' WHERE ID=1	//ovo je dobar upit i napravit ce izmjene u tablici Person gdje ce Name stavit za Marina
+										// i za DepartmentID ce postaviti oan ID koji odgovara nazivu 'HR' u tablici tblDepartment
+
+
+-SELECT TOP 1 * FROM vwPersonDepart2				//prije gornjeg upita, 
+
+ID	Name	Email		DepartmentName
+1	Marko	m@gmail.com	IT                            
+
+
+-SELECT TOP 1 * FROM vwPersonDepart2				// poslje upita
+ID	Name	Email	DepartmentName
+1	Marina	m@gmail.com	HR                            
+
+                           
+--------------------
+
+Da smo kojim slucajem napravili upit
+
+-UPDATE vwPersonDepart2 SET DepartmentName='HR' WHERE ID=1	//OVAJ UPIT BI PROMIJENIO SAMO NAZIV DeaprtmentName-a u TABLICI tblDepartment
+
+Npr
+-  SELECT * FROM tblDepartment			//prije ovog upita  'UPDATE vwPersonDepart2 SET DepartmentName='HR' WHERE ID=1'
+
+DepID	DepartmentName	Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai      
+
+
+Nakon upita
+
+DepID	DepartmentName	Location			//NARAVNO OVO JE VRIJEDILO PRIJE NEGO SMO KREIRALI OKIDAC INSTEAD OF UPDATE
+1	HR                           	London          //OVAJ UIPIT NA VIEW SE MOZE IZVRSIT JER SU NJIME OBUHVACENI SAMO STUPCI JEDNE BAZNE TABLICE
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai   
+
+
+
+
+------------------------------------------------------------------------------------------------------
+-TUTORIAL 47	Instead Of Delete trigger      
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email			Salary	DepartmentID
+1	Marko	m@gmail.com		1000	1
+2	Joispa	j@gmail.com		2200	2
+3	Mateo	m@gmail.com		3000	3
+4	Ivana	ivana@hotmail.com	1750	2
+
+i sa njom povezanu tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai  
+                        
+
+i ako napravimo pogled(VIEW) takav da nam prikazuje kolone ID, Name, Email iz tablice Person i DepartmentName iz tablice Department ID.             
+
+-CREATE VIEW vwPersonDepart2
+  AS
+  SELECT ID, Name, Email, DepartmentName
+  FROM Person
+  INNER JOIN tblDepartment
+  ON Person.DepartmentID=tblDepartment.DepID   
+
+
+I sad ako zelimo na ovakav VIEW uraditi DELETE upit npr
+
+-DELETE FROM  vwPersonDepart2 WHERE ID=1 
+
+SQL nece znati iz koje bazne tablice treba izbrisat redak, i zato ne dopusta izvrsavanje ovakvog upita. Stoga se mora pravit INSTEAD OF DELETE TRIGGER
+
+-CREATE TRIGGER tr_vwPersonDepart2-InsteadOfDelete
+ON vwPersonDepart2
+INSTEAD OF DELETE 
+AS 
+BEGIN
+	DELETE Person FROM Person		//ovo se radi ovako jer se jednim upitom moze htjeti izbrisat vise redaka, pa se radi preko JOIN-a sa deleted tablicom
+	JOIN deleted
+	ON Person.ID=deleted.ID
+END               
+
+Ovaj TRIGGER  se moze napravit i na sljedeci nacin
+
+-CREATE TRIGGER tr_vwPersonDepart2-InsteadOfDelete
+ON vwPersonDepart2
+INSTEAD OF DELETE 
+AS 
+BEGIN
+	DELETE FROM Person
+	WHERE ID IN(SELECT ID FROM deleted)	//"IN" zato sto se jednim upitom moze htjeti izbrisat vise redaka
+END   
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------
+-TUTORIAL 48 	Derived tables and common table expressions in sql server	//izvedene tablice  i cesti tablicni izraci u sql-u
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email			Salary	DepartmentID
+1	Marko	m@gmail.com		1000	1
+2	Joispa	j@gmail.com		2200	2
+3	Mateo	m@gmail.com		3000	3
+4	Ivana	ivana@hotmail.com	1750	2
+
+i sa njom povezanu tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai  
+
+Ako sada zelimo napraviti upit koji ce nam vracati sljedece podatke:
+
+DepartmentName	TotalEmployees
+HR		2
+Developer	2
+
+Dakle hocemo DepartmentName i ukupan broj zaposlenika u tom odjelu u kojima radi 2 ili vise zaposlenika. To mozemo ostvariti na sljedeci nacin tako da napravimo VIEW:
+
+-CREATE VIEW vwTotalEmployeCount
+AS
+SELECT DepartmentName, DepartmentID, COUNT(*) AS TotalEmployee
+FROM Person
+JOIN tblDepartment
+ON Person.DepartmentID=tblDepartment.DepID
+GROUP BY DepartmentID, DepartmentName
+
+I sada na ovom VIEW-u napravimo upit:
+
+-SELECT DepartmentName, TotalEmployee FROM vwTotalEmployeCount WHERE TotalEmployee>=2
+
+DepartmentName			TotalEmployee
+HR                            	3
+Developer                     	2
+
+
+OVO NIJE DOBRO AKO CE OVAJ VIEW KORISTITI SAMO DA BI SE IZ NJEGA NAPRAVIO OVAJ UPIT, JER SE VIEW SPREMA U BAZI I MOZE BITI KORISTEN U DRUGIM UPITIMA.
+ZATO JE U OVOM SLUCAJU BOLJE KORISTITI TemporaryTable
+
+-SELECT DepartmentName, DepartmentID, COUNT(*) AS TotalEmployee
+INTO #TemporaryTable
+FROM Person
+JOIN tblDepartment
+ON Person.DepartmentID=tblDepartment.DepID
+GROUP BY DepartmentID, DepartmentName
+
+-SELECT DepartmentName, TotalEmployee FROM #TemporaryTable WHERE TotalEmployee>=2
+------------------
+
+Isti ucinak se moze postici preko DERIVED TABLE na sljedeci nacin
+
+-SELECT DepartmentName, TotalEmployee FROM					//ovi nazivi kolona moraju biti isti kao i u zagradi
+(
+	SELECT DepartmentName, DepartmentID, COUNT(*) AS TotalEmployee		//unutar zagrada je sve isto kao u gornjim slucajevima
+	FROM Person								
+	JOIN tblDepartment
+	ON Person.DepartmentID=tblDepartment.DepID
+	GROUP BY DepartmentID, DepartmentName
+)
+AS derTablTotalEmployee WHERE TotaLEmployee>=2					//derTablTotalEmployee-naziv derived tablice (izvedene tablice)
+
+
+DepartmentName			TotalEmployee
+HR                            	3
+Developer                     	2
+
+
+IZVEDENA TABLICA JE KAO I #TemporaryTable (privremena tablica) VIDLJIVA SAMO U ONOM PROZORU U KOJEM JE KREIRANA
+
+----------------
+CTE-common table expressions je jos jedan od nacina kojim mozemo dobiti iste rezultate
+
+WITH cteTotalEMployeeCount (DepartmentName, DepartmentID, TotalEmployee)	//cteTotalEMployeeCount-naziv tablice a u zagradi su nazivi stupaca
+AS
+(
+	SELECT DepartmentName, DepartmentID, COUNT(*) AS TotalEmployee		//isto kao u u gornjim slucajevima
+	FROM Person
+	JOIN tblDepartment
+	ON Person.DepartmentID=tblDepartment.DepID
+	GROUP BY DepartmentID, DepartmentName
+)
+
+-SELECT DepartmentName,  TotalEmployee FROM cteTotalEMployeeCount WHERE TotalEmployee>=2	//upit izveden na CTE 
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 49	CTE in sql
+
+CTE-common table expression, zajednièki tablièni izraz. To je privremeni skup rezultata koji je vidljiv u SELECT, INSERT, UPDATE I DELETE upitimasamo ako dolaze odmah
+nakon kreiranja CTE-a.
+
+
+Ako imamo tablicu Person
+
+ID	Name	Email			Salary	DepartmentID
+1	Marko	m@gmail.com		1000	1
+2	Joispa	j@gmail.com		2200	2
+3	Mateo	m@gmail.com		3000	3
+4	Ivana	ivana@hotmail.com	1750	2
+
+i sa njom povezanu tablicu DepartmentID
+
+ID	DepartmentName			Location
+1	IT                            	London                        
+2	HR                            	Paris                         
+3	Developer                     	New York                      
+4	HTML                          	Dubai  
+
+Ako sada zelimo napraviti upit koji ce nam vracati sljedece podatke:
+
+DepartmentName	TotalEmployees
+HR		2
+Developer	2
+
+Ovo se moze postici na nacin da se prvo kreira CTE:
+
+-WITH cteTotalEmployee (DepID, Total)				//za razliku od kreiranja tablica, VIEW-a i dr kod kojih se koristi kljucna rijec CREATE kod 
+AS								//kreiranja CTE-a se koristi kljucna rijec WITH. U zgradi se navode proizvoljan imena stupaca
+(								//a i ne moraju se navesti. Broj naziva u zagradi se mora podudarati s brojem stupaca koje vraca 
+	SELECT DepartmentID, COUNT(*) AS TotalEmployee FROM Person		//SELECT upit. Ako se ne navedu imena stupaca onda imena u CTE-u odgovaraju imenima
+	GROUP BY DepartmentID							//koja su navedena u SELECT upitu
+)
+
+-SELECT DepartmentName, Total FROM tblDepartment		//CTE se nakon toga koristi kao tablica i preko JOIN-a dobivamo zeljene podatke
+JOIN cteTotalEmployee
+ON tblDepartment.DepID=cteTotalEmployee.DepID
+
+DepartmentName			Total
+HR                            	3
+Developer                     	2
+HTML                          	1
+
+Da je ce izmedju ova dva upita (kreiranja CTE-a i SELECT upita) ubacio bilo koji drugi upit ovo se nebi moglo izvrsit jer CTE vrijedi samo za prvi upit nakon 
+njegovog kreiranja, tj vidljiv je samo njemu. Moz se odjednom kreirati vise CTE-a, npr:
+
+-WITH cteName1 (columnName1, columnName2..)
+AS
+(CTE query),
+    cteName2 (columnName1, columnName2..)
+AS
+(CTE query)
+
+-SELECT * FROM cteName1			//posto su vidljivi samo u prvom upitu nakon kreiranja, dabismo iskoristili oba CTE-a moze se koristit UNION
+UNION
+SELECT * FROM cteName2
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 50	Updatable CTE
+
+
+1.UPDATE upit je moguce izvrsit na CTE ako je kreiran na jednoj baznoj tablici. UPDATE upit ce izvrsiti promijene na baznoj tablici.
+---------
+2.Ako je CTE kreiran na dvije ili vise baznih tablica i ako je upitom UPDATE obuhvacena samo jedna bazna tablica onda je upit dozvoljen.
+
+-WITH cteTotalEmployee 
+AS
+(
+	SELECT ID, Name, Email, DepartmentName FROM Person
+	JOIN tblDepartment
+	ON Person.DepartmentID=tblDepartment.DepID
+)
+
+-UPDATE cteTotalEmployee SET Name='Marko' WHERE ID=1		//ovim upitom je obuhvacena samo tablica Person pa je UPDATE upit moguc
+
+-----------
+3.Ako je CTE kreiran na dvije ili vise baznih tablica i ako je upitom UPDATE obuhvaceno vise baznih tablica onda upit nije dozvoljen.
+
+-WITH cteTotalEmployee 
+AS
+(
+	SELECT ID, Name, Email, DepartmentName FROM Person
+	JOIN tblDepartment
+	ON Person.DepartmentID=tblDepartment.DepID
+)
+
+-UPDATE cteTotalEmployee SET Name='Marko', DepartmentName='Developer' WHERE ID=1		//ovim upitom je obuhvaceno vise tablica pa ce SQL javit gresku
+
+-----------
+4.Ako je CTE kreiran na dvije ili vise baznih tablica i ako je upitom UPDATE obuhvacena samo jedna bazna tablica upit je dozvoljen ali moze dati neocekivane rezultate..
+
+-WITH cteTotalEmployee 
+AS
+(
+	SELECT ID, Name, Email, DepartmentName FROM Person
+	JOIN tblDepartment
+	ON Person.DepartmentID=tblDepartment.DepID
+)
+
+-UPDATE cteTotalEmployee SET DepartmentName='Developer' WHERE ID=1	//ovim upitom je obuhvacena samo tablica Person pa je UPDATE upit moguc
+
+PROBLEM U OVOM SLUCAJU JE STO CE OVAJ Update UPIT PROMIJENITI NAZIV U BAZNOJ TABLICI tblDepartment u Developer, pa ce tako sve osobe koje su u tablici Person za
+DepartmentID imali 1 imati naziv Developer, slicno kao kod VIEW-a.
+
+
+
+
+------------------------------------------------------------------------------------------------------------
+-TUTORIAL 51	Recursive CTE
+
+Ako imamo tablciu
+
+EmployeeID	Name		ManagerID
+1		Mark 		     3
+2		John                 1
+3		Steve                NULL
+4		SMith                3
+5		Paul                 4 
+
+Ako uzmemo tablicu kao neku organizaciju u firmi tj Da je Steve direktor jer on nema MenagerID-a, te da je on na vrhu a da su njegovi podredjeni Mark i Smith, a oni su
+sefovi Johnu i Paulu. Odnosno Steve ima Level 1, Mark i Smith 2, a John i Paul 3.
+Ako zelimo iz ove tablice napravit upit koji ce nam kao rezultat dati:
+
+Employee	Manager 	Level
+Steve		Direktor	1
+Mark		Steve		2
+Smith		Steve		2
+John		Mark		3
+Paul		Smith		3
+
+mozemo koristiti rekurzivni CTE.
+
+-  WITH cteEmployee (EmployeeID, Name, ManagerID, [Level])
+  AS
+  (
+	SELECT EmployeeID, Name, ManagerID, 1			// level u uglatim zagradama jer je kljucna rijec u SQL-u, 1 jer hocemo da onaj koji nema 
+	FROM tblEmployee WHERE ManagerID IS NULL		//managera bude level 1
+
+	UNION ALL						//spajamo ova dva upita
+
+	SELECT tblEmployee.EmployeeID, tblEmployee.Name,	//povezujemo gornji cteEmployee sa tablicom tblEmployee
+	 tblEmployee.ManagerID, cteEmployee.[Level]+1		//+1 jer ako je osoba sa levelom 1 Manager nekoj drugoj osobi, onda ta druga osoba ima level 2 itd.
+	FROM tblEmployee
+	JOIN cteEmployee
+	ON tblEmployee.ManagerID=cteEmployee.EmployeeID
+
+  )
+
+-  SELECT e.Name as Employee, ISNULL(m.Name, 'Director') AS Manager, e.[Level]		//SELF JOIN
+  FROM cteEmployee e
+  LEFT JOIN cteEmployee m
+  ON e.ManagerID=m.EmployeeID
+
+
+Rezultat:
+
+Employee			Manager				Level
+Steve                         	Director                      	1
+JOSUA                         	Steve                         	2
+SMith                         	Steve                         	2
+Paul                          	SMith                         	3
+John                          	JOSUA                         	3
+
+
+-------
+Ako bismo nakon kreiranja CTE-a napravili upit
+
+-SELECT * from cteEmployee
+
+Dobili bi
+
+EmployeeID	Name		ManagerID	Level		//zato nam je nakon kreiranja CTE-a trebao SELF JOIN
+3		Steve           NULL		1
+1		JOSUA           3		2
+4		SMith           3		2
+5		Paul            4		3
+2		John            1		3
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 52 i 53	Database normalization
+
+
+
+Normalizacija je proces organizacije podataka kako bi se smanjila redundancija (ponavljanje) podataka. Postoji 6 normalnih formi organizacije podataka. Nedostatci
+nenormaliziranih tj neorganiziranih baza su:-zauzimanje memorije
+					    -proturjecnost podataka
+					    -upiti mogu postati spori
+
+Neki od zahtjeva za normalizaciju:
+1.Prva normalna forma:
+a-ne smije se stavljati vise vrijednosti unutar jedne celije ili redka odvojeni zarezom, npr stavit vise imena za jedan redak
+b-ne smiju se ponavljati kolone ili grupe kolona
+c-svaki redak mora biti jedinstveno oznacen koristeci primarni kljuc
+
+2.Druga normalna forma
+a-tablica mora zadovoljavati prvu normalnu formu
+b-podatke koji se ponavljaju premjestiti u drugu tablicu
+c-kreirati vezu izmedju tablice preko stranog kljuca
+
+
+3.treca normalna forma
+a-tablica zadovoljava prve i drugu normlanu forumu
+b-tablica ne sadrzi nijedan stupac koji nije u potpunosti vezan za primarni kljuc tablice
+
+Ako imamo tablicu 
+
+EmployeeName	Gender	Salary	DepName		DepHead		DepLocation
+Marko		Male	1300	IT		John		London
+Julia		Female	1455	Developer	Pit		Paris
+Steve		Male	2000	Developer	Pit		Paris
+Nolan		Male	1500	IT		John		London
+Anna		Female	2300	IT		John		London
+
+Problem ovakve tablice je pnavljanje vrijednosti za DepName, DepHead i DepLocation.
+-(1b)Problem moze nastati ako se se promijeni DeparHead tj ako npr na njegovo mjesto umjesto Johna dodje Alen,
+onda bi se moralo mijenjati vrijednosti za svaki od redaka u tablici koji su za DeparHead imali Johna.
+-(2b)Rjesenje problema je kreirati novu tablicu npr Department sa kolonama DepID, DepName, DepHead i DepLocation, a u gornju tablicu
+ubacit kolonu DepID kao strani kljuc.
+-(3b)U tablicu nema smisla npr stavit kolonu godisnja placa jer ona nebi bila direktno vezana za ID tj primarni kljuc ove tablice
+nego samo za kolonu Salary. A smisla nema zato sto, ako se vec zeli prikazat godisnja placa, ona se moze izracunati kao 12*Salary.
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 54	PIVOT Operator
+
+PIVOT operator je SQL serverski operator  koji se koristiti da jedinstvene vrijednosti jednog stupca vrati kao stupce. 
+
+Ako imamo tablicu:
+
+SalesAgent	SalesCountry	SalesAmount
+Tom       	USA       	200
+John      	Italia    	300
+David     	USA       	350
+John      	Canada    	400
+Tom       	Canda     	600
+David     	Canada    	100
+John      	USA       	500
+Tom       	Italia    	250
+David     	Italia    	600
+John      	Canada    	200
+Tom       	Italia    	300
+
+
+Ako zelimo grupirat po Agentu i Country napravimo jednostavni GROUPBY upit
+
+-Select SalesAgent, SalesCountry, SUM(SalesAmount) AS Total
+FROM tblPIVOToperator
+GROUP BY SalesAgent, SalesCountry 
+ORDER BY Total DESC, SalesCountry, SalesAgent 
+
+SalesAgent	SalesCountry	Total
+John      	Canada    	600
+Tom       	Canada     	600
+David     	Italia    	600
+Tom       	Italia    	550
+John      	USA       	500
+David     	USA       	350
+John      	Italia    	300
+Tom       	USA       	200
+David     	Canada    	100
+
+Ali ako zelimo dobiti malo bolji prikaz podataka, tj da nam za svakog Agenta prikaze SalesAmount po zemljama koristit cemo PIVOT operator:
+
+-SELECT SalesAgent, USA, Italia, Canada			//USA, Italia i Canada ce biti stupci u rezultatu dobivenom pomocu ovog upita i oni se moraju podudarati
+FROM tblPIVOToperator					//sa vrijednostima stupca SalesCountry. tblPIVOToperator je naziv tablice 
+PIVOT
+(
+	SUM(SalesAmount)
+	FOR SalesCountry				//iz ovog stupca se uzimaju jednostvene vrijednosti
+	IN ([USA], [Italia], [Canada])			//vrijednosti koje se nalaze u stupce SalesCountry se tretiraju kao stupce
+)
+AS
+PivotTable
+
+Rezultat upita
+
+SalesAgent	USA	Italia	Canada
+David     	350	600	100
+John      	500	300	600
+Tom       	200	550	600
+
+
+Upit se moze napraviti i ovako, ali onda nebi imali vrijednosti za Canadu
+
+-SELECT SalesAgent, USA, Italia
+FROM tblPIVOToperator
+PIVOT
+(
+	SUM(SalesAmount)
+	FOR SalesCountry
+	IN ([USA], [Italia])
+)
+AS
+PivotTab
+
+---------------------------
+Problem mooze nastati ako bi tablica "tblPIVOToperator" imala stupac ID, onda nam ovakav PIVOT upit nebi dao ocekivani rezutat vec bi nam vratio 20 redaka.
+Zato se moraju koristiti izvedene tablice (DERIVED) u koju cemo spremiti samo one kolone (sve osim ID) iz tablice tblPIVOToperator.
+S
+- SELECT SalesAgent, USA, Italia, Canada
+FROM 
+(
+	SELECT SalesAgent, SalesCountry, SalesAmount FROM tblPIVOToperator
+)
+AS
+derivedTable
+PIVOT
+(
+	SUM(SalesAmount)
+	FOR SalesCountry
+	IN ([USA], [Italia], [Canada])
+)
+AS
+PivotTable
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 55	Error handling in sql server
+
+
+Ako imamo tablicu Proizvod:
+
+ProizvodID	Name		Price	Dostupno
+1		Laptop          400	50
+2		Desktop         150	25
+
+i tablicu ProdajaProizvoda
+
+ID	ProductID	ProdanaKolicina
+1	1		20
+2	1		10
+3	2		5
+
+Sto znaci da je prvi put prodano 2o laptopa, drugi put 10 a treci put 5 desktopa.
+
+Teba se napraviti STORED PROCEDURE (tutorijal 18) koji ce na osnovu dva ulazna parametra ProizvodID i ProdanaKolicina napraviti sljedece: UPDATE prvu tablicu, tj 
+smanjit Dostupno stanje za ProdanuKolicinu i u ubacit novi redak u drugu tablicu koji ce sadrzavati ProizvodID i ProdanuKolicinu. Prbolem je ako se za ProdanuKolicinu 
+unese veci broj od Dostupnog stanja. Dakle u tom slucaju ne treba niti promijeniti stanje u tablici Proizvod niti unositi novi redak u tablicu ProdajaProizvoda
+
+- CREATE PROCEDURE spProdajaProizvod
+  @ProdId int,
+  @ProdKolicina int
+  AS
+  BEGIN
+	DECLARE @Dostupno int
+	SELECT @Dostupno=Dostupno FROM Proizvod WHERE ProizvodID=@ProdId		
+
+	if(@ProdKolicina>@Dostupno)						//ako je veci ProdanaKolicina veca od Dosutpnog stanja preskace sve
+		BEGIN
+			RAISERROR ('Not enough stock available',16,1)
+		END
+
+		ELSE
+
+			BEGIN
+				BEGIN TRAN					//pocinje transakcija, TRAN ili TRANSACTION
+					
+					UPDATE Proizvod SET Dostupno=Dostupno-@ProdKolicina WHERE ProizvodID=@ProdId		//mijenja se Dostupno stanje, umanjuje 
+																//se za ProdanuKolicinu
+					DECLARE @MaxProdProizID int
+								
+					SELECT @MaxProdProizID= CASE 						//trazi se zadnji ID u tablici ProdajaProizvoda 
+									WHEN MAX(ID) IS NULL			//i kada se nadje uveca se za jedan i ubaciva u tablicu
+										THEN 0				//Ako je agregatna funkcija MAX NULL tj ako je tablica prazna
+									ELSE					//onda ce varijabla @MaxProizID bit 0
+										MAX(ID) 
+									END
+					FROM ProdajaProizvoda
+
+					SET @MaxProdProizID=@MaxProdProizID+1					//uvecava se za jedan
+
+					INSERT INTO ProdajaProizvoda VALUES (@MaxProdProizID, @ProdId, @ProdKolicina)	//unos u tablicu  
+											
+
+				COMMIT TRAN
+			END
+	END
+
+
+Ako nakon toga ozovemo proceduru 
+
+-spProdajaProizvod 1,5
+
+ProizvodID	Name		Price	Dostupno
+1		Laptop          400	45			//stanje se umanjilo za 5
+2		Desktop         150	25
+
+
+ID	ProductID	ProdanaKolicina
+1	1		20
+2	1		10
+3	2		5
+4	1		5
+
+Ako bi smo upisali 
+
+-spProdajaProizvod 2,40
+
+Javilo bi nam gresku koju smo napisali u funkciji RAISERROR jer je Dostupno stanje manje od trazene kolicine.
+
+Msg 50000, Level 16, State 1, Procedure spProdajaProizvod, Line 12
+Not enough stock available
+
+
+Ako bi u slucajno izostavili redak u STORED PROCEDURI gdje uvecavamo ID za 1 (SET @MaxProdProizID=@MaxProdProizID+1), onda bi nam javilo gresku za unos u tablicu 
+ProdajaProizvoda, ali bi se izvrsio gornji upit, tj umanjilo bi se Dostupno stanje proizvoda sto nije dobro.
+ONO CEMU SLUZE TRANSAKCIJE (T-SQL) JE DA AKO SE NE IZVRSI USPJESNO JEDAN OD UPITA DA ONDA NI OSTALI NE BUDU IZVRSENI, TJ U OVISNO SU JEDNI O DRUGIMA.
+ILI CE SE IZVRSITI SVI UPITI UNUTAR TRANSAKCIJE ILI NECE NIJEDAN.
+POSTOJE DVA NACINA RJESAVANJA OVOG PROBLEMA:
+
+1. pomocu system funkcije @@ERROR
+2. pomocu TRY CATCH bloka
+
+
+- CREATE PROCEDURE spProdajaProizvod
+  @ProdId int,
+  @ProdKolicina int
+  AS
+  BEGIN
+	DECLARE @Dostupno int
+	SELECT @Dostupno=Dostupno FROM Proizvod WHERE ProizvodID=@ProdId		
+
+	if(@ProdKolicina>@Dostupno)						
+		BEGIN
+			RAISERROR ('Not enough stock available',16,1)
+		END
+
+		ELSE
+
+			BEGIN
+				BEGIN TRAN				
+					
+					UPDATE Proizvod SET Dostupno=Dostupno-@ProdKolicina WHERE ProizvodID=@ProdId		 
+																
+					DECLARE @MaxProdProizID int
+								
+					SELECT @MaxProdProizID= CASE 						 
+									WHEN MAX(ID) IS NULL		
+										THEN 0				 
+									ELSE					
+										MAX(ID) 
+									END
+					FROM ProdajaProizvoda
+
+					SET @MaxProdProizID=@MaxProdProizID+1					
+
+					INSERT INTO ProdajaProizvoda VALUES (@MaxProdProizID, @ProdId, @ProdKolicina)	 
+				
+				IF(@@ERROR!=NULL)			//ako je ova funkcija razlicita od NULL to znaci da postoji nekakva greska
+					BEGIN
+						ROLBACK TRAN		//i onda se citava transakcija ponistava, tj nijedan upit se nece izvrsiti
+					END
+				ELSE	
+					BEGIN				//unutar svakog IF ili ELSE mora ici BEGIN i END
+						COMMIT TRAN		//u suprotno se izvrsava
+					END
+			END
+	END
+
+
+Mana ove funckije @@ERROR je sto pamti gresku samo zadnjeg upita, tj ako se greska javila na prethodnom upitu @@ERROR ce biti NULL ako se greska nije dogodila
+i na zadnjem upitu. Tj on mijenja svoje stanje iz NULL i NOTNULL za svaki upit, pa ispadne da izvrsenje transakcije ovisi samo o zadnjem upitu.
+Moguca rijesenja su da se postavlja @@ERROR funkcija nakon svakog upita ili da se rezultat pohranjuje u varijable npr.
+
+-DECLARE @Greska1 int, @Greska2 int
+-UPDATE ili INSERT upit
+-SET @Greska1=@@ERROR
+-drugi upit
+-SET @Greska2=@@ERROR
+IF(@Greska1!=NULL || @Greska2!=NULL)
+
+
+----------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 56	Error handling in sql
+
+
+TRY CATCH-je drugi nacin rjesavanja problema iz prehodnog tutorijala
+
+-ALTER PROCEDURE spProdajaProizvod
+  @ProdId int,
+  @ProdKolicina int
+  AS
+  BEGIN
+	DECLARE @Dostupno int
+	SELECT @Dostupno=Dostupno FROM Proizvod WHERE ProizvodID=@ProdId		
+
+	if(@ProdKolicina>@Dostupno)						
+		BEGIN
+			RAISERROR ('Not enough stock available',16,1)
+		END
+
+		ELSE
+
+			BEGIN
+				BEBIN TRY			//pocetak TRY, ako se ijedna greska dogodi unutar TRY program odmah skace na CATCH
+				BEGIN TRAN					
+					
+					UPDATE Proizvod SET Dostupno=Dostupno-@ProdKolicina WHERE ProizvodID=@ProdId		 
+															
+					DECLARE @MaxProdProizID int
+								
+					SELECT @MaxProdProizID= CASE 						
+									WHEN MAX(ID) IS NULL			
+										THEN 0				
+									ELSE					
+										MAX(ID) 
+									END
+					FROM ProdajaProizvoda
+
+					--SET @MaxProdProizID=@MaxProdProizID+1					
+
+					INSERT INTO ProdajaProizvoda VALUES (@MaxProdProizID, @ProdId, @ProdKolicina)	
+					
+				COMMIT TRAN				//ako se ne dogodi ijedan error transakcija ce se izvrsiti
+				END TRY					//kraj TRY
+
+				BEGIN CATCH
+					ROLLBACK TRAN			//ako se dogodi greska transakcija se ponistava
+					ERROR_MESSAGE() AS MessageError
+				END CATCH
+					
+			END
+	END
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 58		Transactions in sql
+
+
+-Transkacija je grupa naredbi (upita) u SQL-u koje mijenjaju pohranjene podatke . U toj grupi ili ce se izvrsiti svi upiti ili nece nijedan. Npr ako su prva dva od 
+tri upita bila uspjesna a trci nije, onda se prva dva ponistavaju tj podaci se vracaju na pocetno stanje.
+Transakcija mora zavrsiti sa naredbom COMMIT TRAN ili ROLLBACK TRAN (TRANSACTION ili TRAN skraceno).
+
+Ako napravimo sljedec upite
+-BEGIN TRAN
+ UPDATE Table SET Name='NewName' WHERE ID=2
+
+ I nakon ovoga u drugom prozoru pousamo napravit upit
+
+-SELECT * FROM Table
+
+Ovo necemo moci izvrsiti, SQL nam nece prikaati podatke iz tablice jer gornju transakciju nismo zavrsili tj nismo stavili ni COMMIT TRAN  niti ROLLBACK TRAN.
+Podaci se u bazi nece promijeniti dok se ne napise COMMIT TRAN ili ako zelimo da se promijene odbace ROLLBACK TRAN.
+
+BEGIN TRAN
+	GRUPA NAREDBI-UPITA
+	PROVJEA POGRESAKA
+	
+	AKO NEMA GRESAKA
+		COMMIT TRAN
+	AKO IMA GRESAKA
+		ROLLBACK TRAN
+		
+		
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 59		SUBQUERIES IN SQL
+
+
+SUBQUERY JE UPIT KOJI VRACA SAMO JEDNU VRIJEDNOST I MOZE BITI UKLOPLJEN UNUTAR UPITA SELECT, UPDATE, INSERT ILI DELETE.
+SUBQUERY MOZE IMATI DRUGI SUBQUERY UNUTAR SEBE
+KOLONE TABLICE KOJA SE NALAZI U SUBQUERY-u SE NE MOGU KORISTIT U VANJSKOM QUERY-u
+
+Ako imamo tablice tblProducts
+
+ID  Name		Description
+1	TV			52 inch black color LCD TV
+2	Laptop		Very thin black color acer laptop
+3	Desktop		HP high performance desktop
+
+
+I tablicu tblProductSales
+ID	ProductID	UnitPrice	QuantitySold
+1	3			450			5				//Desktop prodan po cijeni 450 5 puta
+2	2			250			7
+3	3			450			4
+4	3			450			9
+
+Ako zelimo napravit upit koji nam vraca Id, Name i Description proizvoda koji nije prodan nijednom
+
+-SELECT Id, Name, [Description] from tblProducts		// description ide u zagradama jer je kljucna rijec u SQL serveru
+where Id NOT IN 
+(SELECT DISTINCT ProductId FROM tblProductSales)		//ovo je SUBQUERY, ako izvrsimo samo njega on ce nam vratiti 2 i 3 iz tablice tblProductSales
+
+Ovo ce nam dati:
+
+Id	Name	Description
+1	TV		52 inch black color LCD TV
+
+
+
+Cesto se SUBQUERIES mogu zamijenit sa JOINima
+
+-SELECT tblProducts.Id , Name, [Description] from tblProducts
+LEFT JOIN tblProductSales
+ON tblProducts.Id=tblProductSales.ProductId
+WHERE tblProductSales.ProductId IS NULL
+
+
+Ako zelimo napravit upit koji ce nam vratit Ime produkta i ukupan broj prodanih komada (QUANTITYSOLD):
+
+-SELECT  Name, (SELECT SUM(QuantitySold) FROM tblProductSales WHERE ProductId=tblProducts.Id) AS TotalQuantity
+ FROM tblProducts
+ 
+Name	TotalQuantity	
+TV		NULL
+Laptop	7
+Desktop	18
+
+Preko JOIN-a 
+
+- SELECT  Name, SUM(QuantitySold) FROM tblProducts
+LEFT JOIN tblProductSales
+ON tblProducts.Id=tblProductSales.ProductId
+GROUP BY Name
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 60	CORRELATED SUBQUERY IN SQL
+
+Ako SUBQUERY ovisi o vanjskom QUERY-u onda se taj SUBQUERY zove korelacijski SUBQUERY
+Tj ako se SUBQUERY moze izvrsiti neovisno o vanjskom QUERY-u onda on nije CORRELATED SUBQUERY
+
+-SELECT Id, Name, [Description] from tblProducts		
+where Id NOT IN 
+(SELECT DISTINCT ProductId FROM tblProductSales)	//NONCORRELATED jer se moze sam izvrsiti
+
+-SELECT  Name, 
+(SELECT SUM(QuantitySold) FROM tblProductSales WHERE ProductId=tblProducts.Id) AS TotalQuantity		//CORRELATED jer ovisi o vrijednosti vanjskog QUERY-a
+ FROM tblProducts
+ 
+ 
+ 
+ ----------------------------------------------------------------------------------------------------------------------------------------
+ -TUTORIAL 61	CREATING A LRGE TABLE WITH RANDOM DATA FOR PERFORMANCE TESTING
+ 
+ 
+AKo zelimo prvojeriti da li postoji odredjena tablica u nekoj bazi i zatim je izbrisati upit bi bio:
+
+-IF (EXIST(SELECT * FROM information_schema.tables		//ako postoji tablica sa navedenim imenom...
+			WHERE table_name='tblProductSales'))
+			
+	BEGIN												//...izbrisi je
+		DROP TABLE tblProductSales
+	END
+
+	
+
+Ubacivanje velikog broja redaka u tablicu pomocu WHILE petlje
+
+
+-DECLARE @Id INT
+-SET @Id=1
+
+-WHILE (@iD<=10000)
+BEGIN
+	INSERT INTO tblProducts VALUES 
+	('Product-' + CAST(@Id as nvarchar(20)),
+	'Product-' + CAST(@Id as nvarchar(20)) + 'Description')
+
+	PRINT @Id
+	SET @Id=@Id+1
+END
+
+--------------------
+Ako zelimo ispisat slucajni broj izmedju 1 i 5
+
+-DECLARE @donjGranica int
+set @donjGranica=1
+
+DECLARE @gornjaGranica int
+set @gornjaGranica=5
+
+SELECT ROUND(((@gornjaGranica-@donjGranica)*RAND()+1),0)
+--------------------
+
+Ako zelimo sada u tablicu tblProductSales unijeti vrijednosti gdje ce ProductId biti slucajni broj izmedju 1i 10000, UnitPrice izmedju 1 i 100 i QUANTITYSOLD izmedju 1 i 10
+Za svaki slucajni broj moramo definirat po dvije varijable koje ce predstavljati donju i gornju granicu
+
+declare @RandomProductId int
+declare @RandomUnitPrice int
+declare @RandomQuantitySold int
+
+-- Declare and set variables to generate a 
+-- random ProductId between 1 and 100000
+declare @UpperLimitForProductId int
+declare @LowerLimitForProductId int
+
+set @LowerLimitForProductId = 1
+set @UpperLimitForProductId = 100000
+
+-- Declare and set variables to generate a 
+-- random UnitPrice between 1 and 100
+declare @UpperLimitForUnitPrice int
+declare @LowerLimitForUnitPrice int
+
+set @LowerLimitForUnitPrice = 1
+set @UpperLimitForUnitPrice = 100
+
+-- Declare and set variables to generate a 
+-- random QuantitySold between 1 and 10
+declare @UpperLimitForQuantitySold int
+declare @LowerLimitForQuantitySold int
+
+set @LowerLimitForQuantitySold = 1
+set @UpperLimitForQuantitySold = 10
+
+--Insert Sample data into tblProductSales table
+Declare @Counter int
+Set @Counter = 1
+
+While(@Counter <= 450000)
+Begin
+ select @RandomProductId = Round(((@UpperLimitForProductId - @LowerLimitForProductId) * Rand() + @LowerLimitForProductId), 0)
+ select @RandomUnitPrice = Round(((@UpperLimitForUnitPrice - @LowerLimitForUnitPrice) * Rand() + @LowerLimitForUnitPrice), 0)
+ select @RandomQuantitySold = Round(((@UpperLimitForQuantitySold - @LowerLimitForQuantitySold) * Rand() + @LowerLimitForQuantitySold), 0)
+ 
+ Insert into tblProductsales 
+ values(@RandomProductId, @RandomUnitPrice, @RandomQuantitySold)
+
+ Print @Counter
+ Set @Counter = @Counter + 1
+End
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+TUTORIAL 62		 What to chose for performance SubQuery or Joins
+
+Nema velike razlike u koristenju JOINA-a i SubQuery-a. Jedino ako se preko SubQuery-a mora provjeriti postojanost neke vrijednosti tj kada se koristi funkccija EXIST onda 
+bi JOIN mogao dati brze rezultate ali nista posebno.
+
+Npr ako zelimo provjeriti iz tablice tblProductSales koji proizvodi nius nijednom prodani onda bi to preko SubQuery-a izgledalo
+
+-SELECT Id, Name FROM tblProducts
+where NOT EXISTS (SELECT * FROM tblProductSales where ProductId=tblProducts.Id)
+
+A preko joina bi bilo
+
+-SELECT tblProducts.Id, Name FROM tblProducts			//ako imamo puno redak (preko 10 000) koji ce biti vraceni ovim upitom onda ce se upit preko JOIN-a izvrsiti cca 1-2 sec brze
+LEFT JOIN tblProductSales
+ON tblProducts.Id=tblProductSales.ProductId
+where tblProductSales.ProductId IS NULLž
+
+
+U PRAKSI SU JOIN-i BOLJI (BRZI), ALI AKO SQL SERVER ZA DVA UPITA KREIRA ISTI PLAN ONDA NEMA RAZLIKE.
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 63	CURSORS in SQL server
+
+
+CURSOR je pokazivac na redak tablice.
+Oni su pogodni ako treba odraditi neku radnju(upit) na vise redaka tablice, npr ako treba izvrsiti UPDATE upit na vise redaka.
+
+AKo zelimo napravit CURSOR  na tablicu tblProducts koji ce nam pokazivati na Id i Name:
+
+-DECLARE @ProductId int						--definiramo varijablu tipa int u koju cemo spremat ID producta
+-DECLARE @Name nvarchar(30)					--definiramo varijablu u koju cemo spremat naziv producta
+
+
+-DECLARE ProductCursor CURSOR FOR						--definiramo CURSOR za donji upit
+SELECT Id, Name FROM tblProducts WHERE Id<=1000			
+
+-OPEN ProductCursor											--otvaramo CURSOR koji je trenutno pozicioniran iznad prvog redka tablice koja je dobivena njegovim upitom
+FETCH NEXT FROM ProductCursor INTO @ProdcutId, @Name		--postavljamo CURSOR  na sljedeci redak tablice, tj tablice rezultata koja je dobivena upitom prilikom kreiranja CURSOR-a, i vrijednosti tog redka spremamo u varijable
+
+
+WHILE (@@FETCH_STATUS=0)									--ovaj uvijet ce biti zadovoljen sve dok CURSOR pokaziva ne redak tablice
+BEGIN
+	PRINT 'Id='+CAST(@ProductID AS NVARCHAR(10))+ 'Name='+@Name		--ispisujemo vrijednost varijabli, tj vrijednosti onog redka na kjima je trnutno pokazivac
+	FETCH NEXT FORM ProductCursor INTO @ProductId, @Name			--prebacujemo pokazivac na sljedeci redak
+END
+
+
+CLOSE ProductCursor				--CURSOR napusta redke(rezultate) tablice
+DEALLOCATE ProductCursor		--dealocira izvore koji su koristeni kod ovoga CURSOR-a
+
+---------
+Ako imamo ovakve dvije tablice tblProducts i tblProductSales
+
+tblProducts
+Id	Name		Description
+1	Product-1	Product-1Description
+2	Product-2	Product-2Description
+3	Product-3	Product-3Description
+.	....		...
+.	....		...
+
+tblProductSales
+Id		ProductId	UnitPrice	QuantitySold
+1003	41			63			8
+1008	6248		36			7
+1030	9592		63			3
+.		...			..			.
+.		...			..			.
+
+Ako pomocu CURSORA zelimo rijesiti sljedeci primjer, a to je da u tablici tblProductSales za Unitprice postavimo vrijednosti: 
+55 za ProductName 'Product-55'
+65 za ProductName 'Product-65' 
+1000 za ProductName 'Product-100%'
+
+Posto u tablici tblProductSales nemamo kolunu ProductName, prvo cemo kreirat kursor da pokazuje na ProductId u tablici tblProductsales
+
+Declare @ProductId int								--deklariramo varijablu gdje cemo spremat ProductId iz CURSORA
+
+Declare ProductIdCursor CURSOR FOR 					--definiramo CURSOR koji ce pokazivat na rezulatet dobivene donjim upitom
+Select ProductId from tblProductSales
+
+-- Open statement, executes the SELECT statment
+-- and populates the result set
+Open ProductIdCursor								--izvrsava se upit CURSORA i popunjavaju se rezultati
+
+-- Fetch the row from the result set into the variable
+Fetch Next from ProductIdCursor into @ProductId			--postavljaju se rezultati prvog redka u varijablu
+
+-- If the result set still has rows, @@FETCH_STATUS will be ZERO
+While(@@FETCH_STATUS = 0)								--ako rezultati dobiveni upitom imaju jos redaka ovo ce vracati 0
+Begin
+ Declare @ProductName nvarchar(50)										--deklariramo varijablu u koju cemo spremat ProductName
+ Select @ProductName = Name from tblProducts where Id = @ProductId		--trazimo ProductName gdje je Id=ProductId-u iz CURSOR-a
+ 
+ if(@ProductName = 'Product - 55')										--ako je uvijet zadovoljen mijenjamo mu UnitPrice
+ Begin
+  Update tblProductSales set UnitPrice = 55 where ProductId = @ProductId
+ End
+ else if(@ProductName = 'Product - 65')
+ Begin
+  Update tblProductSales set UnitPrice = 65 where ProductId = @ProductId
+ End
+ else if(@ProductName like 'Product - 100%')
+ Begin
+  Update tblProductSales set UnitPrice = 1000 where ProductId = @ProductId
+ End
+ 
+ Fetch Next from ProductIdCursor into @ProductId 						--ova linija se ne smije izostavit jer bi nam CURSOR uvijek pokazivao na isti redak tablice, tj u ovom slucaju bi nam uvijek pokazivao na isti ProductId
+End
+
+-- Release the row set
+CLOSE ProductIdCursor 
+-- Deallocate, the resources associated with the cursor
+DEALLOCATE ProductIdCursor
+
+
+KORISTENJE CURSORA NIJE PREPORUCLJIVO KOD VECIH TABLICA, JER OVAJ UPIT NAD TABLICOM KOJA IMA OKO 500 TISUCA REDAKA SE IZVRSAVAO 40AK SEKUNDI, JER CE CURSOR PRETRAZITI SVAKI REDAK TABLICE.
+NJIHOVA SE ULOGA ZAMIJENJUJE KORISTENJEM JOIN-a.
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 64	REPLACING CURSORS USING JOINS IN SQL SERVER
+
+CURSOR mozemo zamijenit koristeci JOIN-e.
+Gornji primjer se moze rijesiti na sljedeci nacin.
+
+-UPDATE tblProductSales								//mijenjamo tablicu tblProductSales
+  SET UnitPrice=									//postavljamo UnitPrice 
+	CASE
+		WHEN Name='Product-55' THEN 55
+		WHEN Name='Product-65' THEN 65
+		WHEN Name  LIKE 'Product-100%' THEN 1000
+	END 
+from tblProductSales
+JOIN tblProducts									//JOIN
+ON tblProducts.Id=tblProductSales.ProductId
+WHERE (Name='Product-55' or Name='Product-65' or Name LIKE 'Product-100%')	//ako nemamo ovog uvijeta onda bi za sve one redke ,kojima se Name ne podudara ni s  jednim uvijetom u CASE izrazu, UnitPrice bila postavljena na NULL
+
+Umijesto pisanja WHERE izraza na kraju mozemo u CASE izrazu nadodati ELSE naredbu
+
+- UPDATE tblProductSales
+  SET UnitPrice=
+	CASE
+		WHEN Name='Product-55' THEN 55
+		WHEN Name='Product-65' THEN 65
+		WHEN Name  LIKE 'Product-100%' THEN 1000
+		ELSE 
+			UnitPrice
+	END 
+from tblProductSales
+JOIN tblProducts
+ON tblProducts.Id=tblProductSales.ProductId
+
+
+Ako koristimo CASE izraz za UPDATE upit onda moramo biti oprezni i korisiti ELSE unutar njega. U suprotnom ce se vrijednosti odredjenog stupca postaviti na NULL za sve redke koji nisu zadovoljili
+nijedan CASE(WHEN) uvijet.
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 65	LIST TABLES IN A SQL SERVER DATA USING A QUERY
+
+
+Ako zelimo upitom dobiti sve objekte(tablica, view, stored procedure, functions..) iz nase baze:
+
+-SELECT * FROM SYSOBJECTS
+
+
+AKo zelimo dobiti samo tablice:
+
+-SELECT * FROM SYSOBJECTS where xtype='U'		//'U' - UserTables
+
+IT - Internal table
+P - Stored procedure
+PK - PRIMARY KEY constraint
+S - System table 
+SQ - Service queue
+U - User table
+V - View
+ 
+ Na ovom linku mozemo vidjeti nazive za sve objkete : https://docs.microsoft.com/en-us/sql/relational-databases/system-compatibility-views/sys-sysobjects-transact-sql
+ 
+ SLjedeci on nacina da dobijemo sve tablice unutar odredjene baze:
+ 
+- Select * from SYS.TABLES			//SYS:VIEW za VIEW
+
+-select * from INFORMATION_SCHEMA.TABLES
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-TUTORIAL 66 	WRITING RE RUNNABLE SQL SEVER SCRIPTS
+
+
+Kada kreiramo neki upit mozemo se osigurati da nam program ne javi gresku. Npr ako kreiramo tablicu mozemo prvo provjerit postoji li vec takva tablica.
+
+-IF NOT EXISTS (select * from information_schema.tables where table_name = 'tblEmployee')			//provjeavamo postoji li vec takva tablica 
+Begin																								//ako ne postoji kreiramo tablicu
+ Create table tblEmployee
+ (
+  ID int identity primary key,
+  Name nvarchar(100),
+  Gender nvarchar(10),
+  DateOfBirth DateTime
+ )
+ Print 'Table tblEmployee successfully created'													//ispisuje  poruku da je uspjesno kreirani
+End
+Else
+Begin
+ Print 'Table tblEmployee already exists'														//ako uvijet na pocetku nije zadovoljen ispisujemo da tablica vec postoji
+End
+
+--------------------------
+Jos jedan od nacina je da provjerimo da li postoji OBJECT_ID nativa 'tblEmployee'
+
+-IF OBJECT_ID('tblEmployee') IS NULL							//ako je objekt NULL kreiraj tablicu, u suprotnom ispisi da tablica vecc postoji
+Begin
+   -- Create Table Script
+   Print 'Table tblEmployee created'
+End
+Else
+Begin
+   Print 'Table tblEmployee already exists'
+End
+
+--------------------------
+Ako zelimo  tablicu prvo izbrisat ako postoji pa onda kreirat novu:
+
+-IF OBJECT_ID('tblEmployee') IS NOT NULL			//ako tablica postoji
+Begin												//izbrisi je
+ Drop Table tblEmployee
+End
+Create table tblEmployee							//kreiraj novu tablicu
+(
+ ID int identity primary key,
+ Name nvarchar(100),
+ Gender nvarchar(10),
+ DateOfBirth DateTime
+)
+
+------------------------
+Ako zelimo dodati novu kolonu u odredjenu tablicu, ali prije toga hocemo provjerit da li se takva kolona vec nalazi u toj tablici
+
+-IF NOT EXISTS(Select * from INFORMATION_SCHEMA.COLUMNS where COLUMN_NAME='EmailAddress' and TABLE_NAME = 'tblEmployee' and TABLE_SCHEMA='dbo') 	//provjera postoji li takva kolona u takvoj tablici
+Begin
+ ALTER TABLE tblEmployee
+ ADD EmailAddress nvarchar(50)
+End
+Else
+BEgin
+ Print 'Column EmailAddress already exists'
+End
